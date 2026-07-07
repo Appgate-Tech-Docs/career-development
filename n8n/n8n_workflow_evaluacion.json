@@ -1,0 +1,86 @@
+{
+  "name": "PoC - POST Evaluacion",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evaluacion",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-evaluacion",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst skills = body.skills || [];\nreturn skills.map(s => ({\n  json: {\n    ronda_id: body.ronda_id,\n    empleado_id: body.empleado_id,\n    skill_id: s.skill_id,\n    puntaje: s.puntaje,\n    evaluador_nombre: body.evaluador_nombre,\n    rol_evaluador: body.rol_evaluador || 'Employee',\n    tipo_evaluacion: body.tipo_evaluacion || 'Interno'\n  }\n}));"
+      },
+      "id": "split-skills",
+      "name": "Split Skills",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/app67VJvBnXq015CI/tblUZPKwTFRoe4N87",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"fields\": { \"Ronda\": [$json.ronda_id], \"Evaluado\": [$json.empleado_id], \"Skill\": [$json.skill_id], \"Rol_Evaluador\": $json.rol_evaluador, \"Nombre_Evaluador\": $json.evaluador_nombre, \"Puntaje\": $json.puntaje, \"Tipo_Evaluacion\": $json.tipo_evaluacion } } }}",
+        "options": {}
+      },
+      "id": "create-evaluacion",
+      "name": "Create Evaluacion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_ID_CREDENCIAL",
+          "name": "Airtable Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { status: 'ok', registros_creados: items.length } }];"
+      },
+      "id": "aggregate",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" },
+              { "name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS" }
+            ]
+          }
+        }
+      },
+      "id": "respond-evaluacion",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1080, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Split Skills", "type": "main", "index": 0 }]] },
+    "Split Skills": { "main": [[{ "node": "Create Evaluacion", "type": "main", "index": 0 }]] },
+    "Create Evaluacion": { "main": [[{ "node": "Aggregate", "type": "main", "index": 0 }]] },
+    "Aggregate": { "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]] }
+  }
+}

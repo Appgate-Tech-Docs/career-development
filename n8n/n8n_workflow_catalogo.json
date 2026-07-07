@@ -1,0 +1,253 @@
+{
+  "name": "PoC - GET Catalogo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "catalogo",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-catalogo",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.airtable.com/v0/app67VJvBnXq015CI/tblJAsLi0lvyhkD5h",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-personas",
+      "name": "Get Personas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_ID_CREDENCIAL",
+          "name": "Airtable Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.airtable.com/v0/app67VJvBnXq015CI/tblimSycH4tFQ2zA2",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pageSize",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-skills-1",
+      "name": "Get Skills Page1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_ID_CREDENCIAL",
+          "name": "Airtable Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.airtable.com/v0/app67VJvBnXq015CI/tblimSycH4tFQ2zA2",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pageSize",
+              "value": "100"
+            },
+            {
+              "name": "offset",
+              "value": "={{ $json.offset }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-skills-2",
+      "name": "Get Skills Page2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_ID_CREDENCIAL",
+          "name": "Airtable Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.airtable.com/v0/app67VJvBnXq015CI/tblimSycH4tFQ2zA2",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pageSize",
+              "value": "100"
+            },
+            {
+              "name": "offset",
+              "value": "={{ $json.offset }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-skills-3",
+      "name": "Get Skills Page3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        400
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_ID_CREDENCIAL",
+          "name": "Airtable Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const personas = $node[\"Get Personas\"].json.records.map(r => ({\n  id: r.id, nombre: r.fields.Nombre, area: r.fields.Area,\n  perfil_rol: r.fields.Perfil_Rol, lider_id: (r.fields.Lider && r.fields.Lider[0]) || null\n}));\n\nconst registrosSkills = [\n  ...$node[\"Get Skills Page1\"].json.records,\n  ...$node[\"Get Skills Page2\"].json.records,\n  ...$node[\"Get Skills Page3\"].json.records\n];\n\nconst skills = registrosSkills.map(r => ({\n  id: r.id,\n  nombre: r.fields.Nombre_Skill,\n  tipo: r.fields.Tipo,\n  perfil_rol: r.fields.Perfil_Rol || null,\n  descripcion: r.fields.Descripcion || '',\n  activo: r.fields.Activo === true,\n  niveles: {\n    Basic: r.fields.Nivel_Basic || '',\n    Intermediate: r.fields.Nivel_Intermediate || '',\n    Advanced: r.fields.Nivel_Advanced || '',\n    Expert: r.fields.Nivel_Expert || ''\n  }\n}));\n\nreturn [{ json: { personas, skills } }];"
+      },
+      "id": "code-merge",
+      "name": "Armar Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-catalogo",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Personas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Personas": {
+      "main": [
+        [
+          {
+            "node": "Get Skills Page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Skills Page1": {
+      "main": [
+        [
+          {
+            "node": "Get Skills Page2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Skills Page2": {
+      "main": [
+        [
+          {
+            "node": "Get Skills Page3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Skills Page3": {
+      "main": [
+        [
+          {
+            "node": "Armar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
