@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Autoevaluación - Employee</title>
+<style>
+  :root {
+    --navy: #081339;
+    --medium-blue: #0072BA;
+    --bright-blue: #65BAE8;
+    --light-blue: #A0DBEB;
+    --medium-green: #109255;
+    --bright-green: #85C54A;
+    --dark-gray: #3B4053;
+    --medium-gray: #8B91A9;
+    --light-gray: #D0D5E7;
+    --lightest-gray: #EDEFF7;
+    --black: #000000;
+    --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 680px;
+    margin: 40px auto;
+    padding: 0 16px 60px;
+    background: var(--white);
+    color: var(--dark-gray);
+  }
+  h1 { font-size: 1.4rem; color: var(--navy); font-weight: 800; margin-bottom: 4px; }
+  .subtitle { color: var(--medium-gray); font-size: 0.9rem; margin-bottom: 24px; }
+  label { display: block; margin-top: 16px; font-weight: bold; color: var(--navy); }
+  select {
+    width: 100%; padding: 10px; margin-top: 6px;
+    border: 1px solid var(--light-gray); border-radius: 6px;
+    background: var(--white); color: var(--dark-gray); font-size: 1rem;
+  }
+
+  /* Barra de progreso */
+  .progress-wrap { margin: 20px 0 8px; }
+  .progress-label { font-size: 0.85rem; color: var(--medium-gray); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .progress-bar-bg { background: var(--lightest-gray); border-radius: 8px; height: 10px; overflow: hidden; }
+  .progress-bar-fill { background: var(--medium-blue); height: 100%; border-radius: 8px; transition: width 0.25s ease; }
+
+  /* Pantalla de pregunta */
+  .category-badge {
+    display: inline-block; background: var(--light-blue); color: var(--navy);
+    font-size: 0.75rem; font-weight: bold; padding: 4px 10px; border-radius: 12px;
+    margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .skill-title { font-size: 1.25rem; color: var(--navy); font-weight: 800; margin: 4px 0; }
+  .skill-desc { font-size: 0.95rem; color: var(--dark-gray); margin-bottom: 18px; line-height: 1.4; }
+
+  .level-card {
+    border: 2px solid var(--light-gray); border-radius: 10px; padding: 14px 16px;
+    margin-bottom: 12px; cursor: pointer; transition: all 0.15s ease; background: var(--white);
+  }
+  .level-card:hover { border-color: var(--bright-blue); background: var(--lightest-gray); }
+  .level-card.selected { border-color: var(--medium-blue); background: var(--lightest-gray); }
+  .level-name { font-weight: bold; color: var(--navy); margin-bottom: 4px; }
+  .level-desc { font-size: 0.9rem; color: var(--dark-gray); line-height: 1.35; }
+
+  .nav-buttons { display: flex; justify-content: space-between; margin-top: 24px; }
+  button {
+    padding: 10px 22px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.95rem;
+  }
+  .btn-primary { background: var(--medium-blue); color: var(--white); }
+  .btn-primary:hover:not(:disabled) { background: var(--navy); }
+  .btn-primary:disabled { background: var(--light-gray); color: var(--medium-gray); cursor: not-allowed; }
+  .btn-secondary { background: var(--white); color: var(--medium-blue); border: 1px solid var(--medium-blue); }
+  .btn-secondary:hover { background: var(--lightest-gray); }
+  .btn-secondary:disabled { opacity: 0; pointer-events: none; }
+
+  /* Resumen final */
+  .summary-item {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--lightest-gray); padding: 10px 0;
+  }
+  .summary-skill { font-weight: bold; color: var(--navy); font-size: 0.9rem; }
+  .summary-category { font-size: 0.75rem; color: var(--medium-gray); }
+  .summary-level { color: var(--medium-blue); font-weight: bold; font-size: 0.9rem; }
+
+  #status { margin-top: 16px; font-weight: bold; color: var(--medium-green); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<h1>Autoevaluación</h1>
+<div class="subtitle">Responde con calma. Cada nivel tiene una descripción — elige la que más se parezca a tu forma de trabajar hoy, no a la que te gustaría tener.</div>
+
+<script>
+  const N8N_BASE = "https://n8n.appgate.dev/webhook";
+  const GET_CATALOGO_URL = `${N8N_BASE}/catalogo`;
+  const POST_EVALUACION_URL = `${N8N_BASE}/evaluacion`;
+  const RONDA_ID = "recyFnw4J1OiroFZT";
+  const NIVEL_A_PUNTAJE = { Basic: 2, Intermediate: 3, Advanced: 4, Expert: 5 };
+  const NIVEL_LABEL = { Basic: "Básico", Intermediate: "Intermedio", Advanced: "Avanzado", Expert: "Experto" };
+  const CATEGORIA_LABEL = { "Funcion": "Función de tu perfil", "Hard Skill": "Hard Skill de tu perfil", "Soft Skill": "Soft Skill" };
+</script>
+
+<div id="step-persona">
+  <label for="persona">Selecciona tu nombre</label>
+  <select id="persona"></select>
+</div>
+
+<div id="step-wizard" class="hidden">
+  <div class="progress-wrap">
+    <div class="progress-label"><span id="progress-text"></span><span id="progress-pct"></span></div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+  <div id="skill-screen"></div>
+  <div class="nav-buttons">
+    <button class="btn-secondary" id="btn-back">Atrás</button>
+    <button class="btn-primary" id="btn-next" disabled>Siguiente</button>
+  </div>
+</div>
+
+<div id="step-review" class="hidden">
+  <h2 style="color:var(--navy)">Revisa tus respuestas</h2>
+  <div id="review-list"></div>
+  <div class="nav-buttons">
+    <button class="btn-secondary" id="btn-back-review">Atrás</button>
+    <button class="btn-primary" id="btn-submit">Enviar autoevaluación</button>
+  </div>
+  <div id="status"></div>
+</div>
+
+<script>
+let catalogo = { personas: [], skills: [] };
+let personaActual = null;
+let preguntas = [];       // lista plana de skills a responder, en orden
+let respuestas = {};      // skill_id -> { nivel, puntaje }
+let indiceActual = 0;
+
+async function cargarCatalogo() {
+  const res = await fetch(GET_CATALOGO_URL);
+  catalogo = await res.json();
+
+  const select = document.getElementById("persona");
+  select.innerHTML = '<option value="">-- Selecciona --</option>' +
+    catalogo.personas.map(p => `<option value="${p.id}">${p.nombre}</option>`).join("");
+  select.addEventListener("change", iniciarWizard);
+}
+
+function draftKey(personaId) {
+  return `draft_eval_${RONDA_ID}_${personaId}`;
+}
+
+function iniciarWizard() {
+  const select = document.getElementById("persona");
+  if (!select.value) return;
+
+  personaActual = catalogo.personas.find(p => p.id === select.value);
+
+  const activas = catalogo.skills.filter(s => s.activo !== false);
+  const funciones = activas.filter(s => s.tipo === "Funcion" && s.perfil_rol === personaActual.perfil_rol);
+  const hardSkills = activas.filter(s => s.tipo === "Hard Skill" && s.perfil_rol === personaActual.perfil_rol);
+  const softSkills = activas.filter(s => s.tipo === "Soft Skill");
+
+  preguntas = [...funciones, ...hardSkills, ...softSkills];
+
+  const saved = localStorage.getItem(draftKey(personaActual.id));
+  respuestas = saved ? JSON.parse(saved) : {};
+  indiceActual = preguntas.findIndex(p => !respuestas[p.id]);
+  if (indiceActual === -1) indiceActual = 0;
+
+  document.getElementById("step-persona").classList.add("hidden");
+  document.getElementById("step-wizard").classList.remove("hidden");
+  renderPregunta();
+}
+
+function guardarBorrador() {
+  localStorage.setItem(draftKey(personaActual.id), JSON.stringify(respuestas));
+}
+
+function renderPregunta() {
+  const skill = preguntas[indiceActual];
+  const total = preguntas.length;
+
+  document.getElementById("progress-text").textContent = `Pregunta ${indiceActual + 1} de ${total}`;
+  document.getElementById("progress-pct").textContent = `${Math.round(((indiceActual) / total) * 100)}%`;
+  document.getElementById("progress-fill").style.width = `${(indiceActual / total) * 100}%`;
+
+  const seleccionActual = respuestas[skill.id]?.nivel || null;
+
+  const screen = document.getElementById("skill-screen");
+  screen.innerHTML = `
+    <div class="category-badge">${CATEGORIA_LABEL[skill.tipo] || skill.tipo}</div>
+    <div class="skill-title">${skill.nombre.trim()}</div>
+    <div class="skill-desc">${skill.descripcion || ""}</div>
+    ${["Basic","Intermediate","Advanced","Expert"].map(nivel => `
+      <div class="level-card ${seleccionActual === nivel ? "selected" : ""}" data-nivel="${nivel}">
+        <div class="level-name">${NIVEL_LABEL[nivel]}</div>
+        <div class="level-desc">${skill.niveles[nivel] || "Sin descripción disponible."}</div>
+      </div>
+    `).join("")}
+  `;
+
+  screen.querySelectorAll(".level-card").forEach(card => {
+    card.addEventListener("click", () => {
+      screen.querySelectorAll(".level-card").forEach(c => c.classList.remove("selected"));
+      card.classList.add("selected");
+      const nivel = card.dataset.nivel;
+      respuestas[skill.id] = { nivel, puntaje: NIVEL_A_PUNTAJE[nivel] };
+      guardarBorrador();
+      document.getElementById("btn-next").disabled = false;
+    });
+  });
+
+  document.getElementById("btn-next").disabled = !seleccionActual;
+  document.getElementById("btn-back").disabled = indiceActual === 0;
+}
+
+document.getElementById("btn-back").addEventListener("click", () => {
+  if (indiceActual > 0) { indiceActual--; renderPregunta(); }
+});
+
+document.getElementById("btn-next").addEventListener("click", () => {
+  if (indiceActual < preguntas.length - 1) {
+    indiceActual++;
+    renderPregunta();
+  } else {
+    mostrarResumen();
+  }
+});
+
+function mostrarResumen() {
+  document.getElementById("step-wizard").classList.add("hidden");
+  document.getElementById("step-review").classList.remove("hidden");
+
+  const list = document.getElementById("review-list");
+  list.innerHTML = preguntas.map(skill => `
+    <div class="summary-item">
+      <div>
+        <div class="summary-skill">${skill.nombre.trim()}</div>
+        <div class="summary-category">${CATEGORIA_LABEL[skill.tipo] || skill.tipo}</div>
+      </div>
+      <div class="summary-level">${NIVEL_LABEL[respuestas[skill.id].nivel]}</div>
+    </div>
+  `).join("");
+}
+
+document.getElementById("btn-back-review").addEventListener("click", () => {
+  document.getElementById("step-review").classList.add("hidden");
+  document.getElementById("step-wizard").classList.remove("hidden");
+  indiceActual = preguntas.length - 1;
+  renderPregunta();
+});
+
+document.getElementById("btn-submit").addEventListener("click", async () => {
+  const statusEl = document.getElementById("status");
+  const submitBtn = document.getElementById("btn-submit");
+  submitBtn.disabled = true;
+  statusEl.style.color = "var(--medium-gray)";
+  statusEl.textContent = "Enviando...";
+
+  const skills = preguntas.map(skill => ({
+    skill_id: skill.id,
+    puntaje: respuestas[skill.id].puntaje
+  }));
+
+  try {
+    const res = await fetch(POST_EVALUACION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        empleado_id: personaActual.id,
+        evaluador_nombre: personaActual.nombre,
+        rol_evaluador: "Employee",
+        ronda_id: RONDA_ID,
+        skills
+      })
+    });
+    const data = await res.json();
+    statusEl.style.color = "var(--medium-green)";
+    statusEl.textContent = `Listo, gracias. ${data.registros_creados || skills.length} respuestas guardadas.`;
+    localStorage.removeItem(draftKey(personaActual.id));
+  } catch (e) {
+    statusEl.style.color = "#c0392b";
+    statusEl.textContent = "Error al enviar. Intenta de nuevo.";
+    submitBtn.disabled = false;
+  }
+});
+
+cargarCatalogo();
+</script>
+
+</body>
+</html>

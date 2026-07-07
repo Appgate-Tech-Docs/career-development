@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mi Dashboard de Desarrollo</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --navy: #081339; --medium-blue: #0072BA; --bright-blue: #65BAE8; --light-blue: #A0DBEB;
+    --medium-green: #109255; --bright-green: #85C54A; --dark-gray: #3B4053; --medium-gray: #8B91A9;
+    --light-gray: #D0D5E7; --lightest-gray: #EDEFF7; --black: #000000; --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 32px auto; padding: 0 16px 60px; background: var(--white); color: var(--dark-gray); }
+  h1 { font-size: 1.5rem; color: var(--navy); font-weight: 800; margin-bottom: 4px; }
+  .subtitle { color: var(--medium-gray); font-size: 0.9rem; margin-bottom: 20px; }
+  label { display: block; margin-top: 8px; font-weight: bold; color: var(--navy); }
+  select { width: 100%; max-width: 400px; padding: 10px; margin-top: 6px; border: 1px solid var(--light-gray); border-radius: 6px; background: var(--white); color: var(--dark-gray); font-size: 1rem; }
+  .hidden { display: none; }
+
+  .kpi-row { display: flex; gap: 16px; margin: 24px 0; flex-wrap: wrap; }
+  .kpi-card { flex: 1; min-width: 140px; background: var(--lightest-gray); border-radius: 10px; padding: 16px; text-align: center; }
+  .kpi-value { font-size: 1.8rem; font-weight: 800; color: var(--navy); }
+  .kpi-label { font-size: 0.8rem; color: var(--medium-gray); margin-top: 4px; }
+
+  .section-title { font-size: 1.1rem; color: var(--navy); font-weight: 800; margin: 32px 0 12px; }
+  .two-col { display: flex; gap: 32px; flex-wrap: wrap; }
+  .chart-wrap { flex: 1; min-width: 280px; max-width: 380px; margin: 0 auto; }
+
+  .gap-card {
+    border: 1px solid var(--light-gray); border-left: 4px solid var(--medium-blue);
+    border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; background: var(--lightest-gray);
+  }
+  .gap-title { font-weight: bold; color: var(--navy); }
+  .gap-sub { font-size: 0.8rem; color: var(--medium-gray); margin-top: 2px; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { text-align: left; font-size: 0.8rem; color: var(--medium-gray); text-transform: uppercase; letter-spacing: 0.02em; padding: 8px; border-bottom: 2px solid var(--light-gray); }
+  td { padding: 10px 8px; border-bottom: 1px solid var(--lightest-gray); font-size: 0.9rem; }
+  .badge { display: inline-block; font-size: 0.7rem; font-weight: bold; padding: 2px 8px; border-radius: 10px; background: var(--light-blue); color: var(--navy); }
+  .below-area { color: #c0392b; font-weight: bold; }
+  .above-area { color: var(--medium-green); font-weight: bold; }
+
+  #status { margin-top: 16px; color: var(--medium-gray); }
+</style>
+</head>
+<body>
+
+<h1>Mi Dashboard de Desarrollo</h1>
+<div class="subtitle">Tus resultados de la ronda actual, comparados con el promedio de tu área.</div>
+
+<script>
+  const N8N_BASE = "https://n8n.appgate.dev/webhook";
+  const GET_CATALOGO_URL = `${N8N_BASE}/catalogo`;
+  const GET_DASHBOARD_URL = `${N8N_BASE}/dashboard-personal`;
+</script>
+
+<label for="persona">Selecciona tu nombre</label>
+<select id="persona"></select>
+
+<div id="status"></div>
+
+<div id="dashboard" class="hidden">
+  <div class="kpi-row">
+    <div class="kpi-card"><div class="kpi-value" id="kpi-general">-</div><div class="kpi-label">Promedio general</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="kpi-funcion">-</div><div class="kpi-label">Funciones</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="kpi-hard">-</div><div class="kpi-label">Hard Skills</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="kpi-soft">-</div><div class="kpi-label">Soft Skills</div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-wrap"><canvas id="chart-radar"></canvas></div>
+    <div style="flex:1; min-width:280px;">
+      <div class="section-title" style="margin-top:0">Tus prioridades de desarrollo</div>
+      <div id="gaps-list"></div>
+    </div>
+  </div>
+
+  <div class="section-title">Detalle por skill</div>
+  <table>
+    <thead><tr><th>Skill</th><th>Categoría</th><th>Empleado</th><th>Líder</th><th>Par</th><th>Tu promedio</th><th>Promedio del área</th></tr></thead>
+    <tbody id="tabla-skills"></tbody>
+  </table>
+</div>
+
+<script>
+let catalogo = { personas: [] };
+let chartRadar = null;
+
+async function cargarPersonas() {
+  const res = await fetch(GET_CATALOGO_URL);
+  catalogo = await res.json();
+  const select = document.getElementById("persona");
+  select.innerHTML = '<option value="">-- Selecciona --</option>' +
+    catalogo.personas.map(p => `<option value="${p.id}">${p.nombre}</option>`).join("");
+  select.addEventListener("change", cargarDashboard);
+}
+
+async function cargarDashboard() {
+  const personaId = document.getElementById("persona").value;
+  const dashboardEl = document.getElementById("dashboard");
+  const statusEl = document.getElementById("status");
+  if (!personaId) { dashboardEl.classList.add("hidden"); return; }
+
+  statusEl.textContent = "Cargando...";
+  const res = await fetch(`${GET_DASHBOARD_URL}?persona_id=${personaId}`);
+  const data = await res.json();
+
+  if (data.error) {
+    statusEl.textContent = data.error;
+    dashboardEl.classList.add("hidden");
+    return;
+  }
+  statusEl.textContent = "";
+  dashboardEl.classList.remove("hidden");
+
+  document.getElementById("kpi-general").textContent = data.promedio_general ?? "-";
+  document.getElementById("kpi-funcion").textContent = data.promedio_por_categoria["Funcion"] ?? "-";
+  document.getElementById("kpi-hard").textContent = data.promedio_por_categoria["Hard Skill"] ?? "-";
+  document.getElementById("kpi-soft").textContent = data.promedio_por_categoria["Soft Skill"] ?? "-";
+
+  renderRadar(data.promedio_por_categoria);
+  renderGaps(data.gaps_prioritarios);
+  renderTablaSkills(data.skills);
+}
+
+function renderRadar(porCategoria) {
+  const ctx = document.getElementById("chart-radar").getContext("2d");
+  if (chartRadar) chartRadar.destroy();
+  const categorias = Object.keys(porCategoria);
+  chartRadar = new Chart(ctx, {
+    type: "radar",
+    data: {
+      labels: categorias,
+      datasets: [{
+        label: "Tu promedio",
+        data: categorias.map(c => porCategoria[c]),
+        backgroundColor: "rgba(0, 114, 186, 0.2)",
+        borderColor: "#0072BA",
+        pointBackgroundColor: "#0072BA",
+      }]
+    },
+    options: { scales: { r: { min: 0, max: 5 } } }
+  });
+}
+
+function renderGaps(gaps) {
+  const list = document.getElementById("gaps-list");
+  if (!gaps.length) { list.innerHTML = "<p style='color:var(--medium-gray)'>No hay suficientes datos todavía.</p>"; return; }
+  list.innerHTML = gaps.map(g => `
+    <div class="gap-card">
+      <div class="gap-title">${g.nombre}</div>
+      <div class="gap-sub">${g.tipo} · Tu promedio: <b>${g.promedio}</b>${g.promedio_area !== null ? ` · Promedio del área: ${g.promedio_area}` : ""}</div>
+    </div>
+  `).join("");
+}
+
+function renderTablaSkills(skills) {
+  const tbody = document.getElementById("tabla-skills");
+  tbody.innerHTML = skills.map(s => {
+    let comparacion = "";
+    if (s.promedio !== null && s.promedio_area !== null) {
+      comparacion = s.promedio < s.promedio_area
+        ? `<span class="below-area">${s.promedio_area} ▼</span>`
+        : `<span class="above-area">${s.promedio_area} ▲</span>`;
+    } else if (s.promedio_area !== null) {
+      comparacion = s.promedio_area;
+    } else {
+      comparacion = "-";
+    }
+    return `
+      <tr>
+        <td>${s.nombre}</td>
+        <td><span class="badge">${s.tipo}</span></td>
+        <td>${s.employee ?? "-"}</td>
+        <td>${s.leader ?? "-"}</td>
+        <td>${s.peer ?? "-"}</td>
+        <td><b>${s.promedio ?? "-"}</b></td>
+        <td>${comparacion}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+cargarPersonas();
+</script>
+
+</body>
+</html>

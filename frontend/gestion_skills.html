@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Gestión del Catálogo de Habilidades</title>
+<style>
+  :root {
+    --navy: #081339; --medium-blue: #0072BA; --bright-blue: #65BAE8; --light-blue: #A0DBEB;
+    --medium-green: #109255; --bright-green: #85C54A; --dark-gray: #3B4053; --medium-gray: #8B91A9;
+    --light-gray: #D0D5E7; --lightest-gray: #EDEFF7; --black: #000000; --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 32px auto; padding: 0 16px 60px; background: var(--white); color: var(--dark-gray); }
+  h1 { font-size: 1.5rem; color: var(--navy); font-weight: 800; margin-bottom: 4px; }
+  .subtitle { color: var(--medium-gray); font-size: 0.9rem; margin-bottom: 20px; }
+  label { display: block; margin-top: 10px; font-weight: bold; color: var(--navy); font-size: 0.9rem; }
+  select, input[type=text], textarea {
+    width: 100%; padding: 9px; margin-top: 5px; border: 1px solid var(--light-gray); border-radius: 6px;
+    background: var(--white); color: var(--dark-gray); font-size: 0.9rem; font-family: Arial, sans-serif;
+  }
+  .hidden { display: none; }
+  .required-mark { color: #c0392b; }
+
+  .toolbar { display: flex; gap: 12px; align-items: center; margin: 16px 0; flex-wrap: wrap; }
+  .toolbar input, .toolbar select { width: auto; min-width: 200px; margin-top: 0; }
+  .btn { padding: 9px 18px; background: var(--medium-blue); color: var(--white); border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.88rem; }
+  .btn:hover { background: var(--navy); }
+  .btn-secondary { background: var(--white); color: var(--medium-blue); border: 1px solid var(--medium-blue); }
+  .btn-secondary:hover { background: var(--lightest-gray); }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th { text-align: left; font-size: 0.78rem; color: var(--medium-gray); text-transform: uppercase; letter-spacing: 0.02em; padding: 8px; border-bottom: 2px solid var(--light-gray); }
+  td { padding: 9px 8px; border-bottom: 1px solid var(--lightest-gray); font-size: 0.88rem; }
+  .badge { display: inline-block; font-size: 0.7rem; font-weight: bold; padding: 2px 8px; border-radius: 10px; background: var(--light-blue); color: var(--navy); }
+  .btn-editar { background: none; border: none; color: var(--medium-blue); font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+  .btn-editar:hover { text-decoration: underline; }
+
+  .panel {
+    border: 2px solid var(--light-gray); border-radius: 10px; padding: 20px; margin-top: 20px; background: var(--lightest-gray);
+  }
+  .panel-title { font-size: 1.1rem; color: var(--navy); font-weight: 800; margin-bottom: 4px; }
+  .form-row { display: flex; gap: 12px; }
+  .form-row > div { flex: 1; }
+  .niveles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px; }
+  .nivel-box label { margin-top: 0; }
+
+  .panel-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .form-error { color: #c0392b; font-size: 0.85rem; margin-top: 8px; font-weight: bold; }
+
+  #status { margin-top: 12px; color: var(--medium-gray); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<h1>Gestión del Catálogo de Habilidades</h1>
+<div class="subtitle">Edita las funciones, hard skills y soft skills existentes, o crea nuevas. Toda habilidad debe tener descripción para sus 4 niveles.</div>
+
+<script>
+  const N8N_BASE = "https://n8n.appgate.dev/webhook";
+  const GET_CATALOGO_URL = `${N8N_BASE}/catalogo`;
+  const POST_CREAR_SKILL_URL = `${N8N_BASE}/skills/crear`;
+  const POST_ACTUALIZAR_SKILL_URL = `${N8N_BASE}/skills/actualizar`;
+  const POST_TOGGLE_ACTIVO_URL = `${N8N_BASE}/skills/toggle-activo`;
+</script>
+
+<div class="toolbar">
+  <input type="text" id="buscador" placeholder="Buscar habilidad...">
+  <select id="filtro-tipo">
+    <option value="">Todos los tipos</option>
+    <option value="Funcion">Función</option>
+    <option value="Hard Skill">Hard Skill</option>
+    <option value="Soft Skill">Soft Skill</option>
+  </select>
+  <label style="display:flex; align-items:center; gap:6px; margin:0; font-weight:normal; color:var(--dark-gray)">
+    <input type="checkbox" id="filtro-solo-activas" checked style="width:auto; margin:0;"> Mostrar solo activas
+  </label>
+  <button class="btn" id="btn-nueva">+ Nueva habilidad</button>
+</div>
+
+<div id="status"></div>
+
+<table>
+  <thead><tr><th>Nombre</th><th>Tipo</th><th>Área / Perfil</th><th>Estado</th><th></th><th></th></tr></thead>
+  <tbody id="tabla-skills"></tbody>
+</table>
+
+<div class="panel hidden" id="panel-form">
+  <div class="panel-title" id="panel-titulo">Nueva habilidad</div>
+
+  <label>Nombre de la habilidad <span class="required-mark">*</span></label>
+  <input type="text" id="f-nombre">
+
+  <div class="form-row">
+    <div>
+      <label>Tipo <span class="required-mark">*</span></label>
+      <select id="f-tipo">
+        <option value="Funcion">Función</option>
+        <option value="Hard Skill">Hard Skill</option>
+        <option value="Soft Skill">Soft Skill</option>
+      </select>
+    </div>
+    <div id="f-perfil-wrap">
+      <label>Área / Perfil de rol</label>
+      <input type="text" id="f-perfil" list="lista-perfiles" placeholder="Ej. Cloud, Sales, Marketing...">
+      <datalist id="lista-perfiles"></datalist>
+    </div>
+  </div>
+
+  <label>Descripción general</label>
+  <textarea id="f-descripcion" rows="2"></textarea>
+
+  <label style="margin-top:16px">Descripción por nivel <span class="required-mark">*</span> (obligatorias las 4)</label>
+  <div class="niveles-grid">
+    <div class="nivel-box"><label>Básico</label><textarea id="f-nivel-basic" rows="3"></textarea></div>
+    <div class="nivel-box"><label>Intermedio</label><textarea id="f-nivel-intermediate" rows="3"></textarea></div>
+    <div class="nivel-box"><label>Avanzado</label><textarea id="f-nivel-advanced" rows="3"></textarea></div>
+    <div class="nivel-box"><label>Experto</label><textarea id="f-nivel-expert" rows="3"></textarea></div>
+  </div>
+
+  <div class="form-error hidden" id="form-error"></div>
+
+  <div class="panel-actions">
+    <button class="btn" id="btn-guardar">Guardar</button>
+    <button class="btn-secondary" id="btn-cancelar">Cancelar</button>
+  </div>
+</div>
+
+<script>
+let catalogo = { skills: [] };
+let skillEditandoId = null;
+
+async function cargarSkills() {
+  document.getElementById("status").textContent = "Cargando...";
+  const res = await fetch(GET_CATALOGO_URL);
+  catalogo = await res.json();
+  document.getElementById("status").textContent = "";
+
+  const perfiles = [...new Set(catalogo.skills.map(s => s.perfil_rol).filter(Boolean))].sort();
+  document.getElementById("lista-perfiles").innerHTML = perfiles.map(p => `<option value="${p}">`).join("");
+
+  renderTabla();
+}
+
+function renderTabla() {
+  const buscador = document.getElementById("buscador").value.toLowerCase();
+  const filtroTipo = document.getElementById("filtro-tipo").value;
+  const soloActivas = document.getElementById("filtro-solo-activas").checked;
+
+  const filtradas = catalogo.skills.filter(s => {
+    const coincideNombre = s.nombre.toLowerCase().includes(buscador);
+    const coincideTipo = !filtroTipo || s.tipo === filtroTipo;
+    const coincideActivo = !soloActivas || s.activo;
+    return coincideNombre && coincideTipo && coincideActivo;
+  }).sort((a, b) => a.nombre.trim().localeCompare(b.nombre.trim()));
+
+  const tbody = document.getElementById("tabla-skills");
+  tbody.innerHTML = filtradas.map(s => `
+    <tr style="${s.activo ? '' : 'opacity:0.55'}">
+      <td>${s.nombre.trim()}</td>
+      <td><span class="badge">${s.tipo}</span></td>
+      <td>${s.perfil_rol || "-"}</td>
+      <td>${s.activo ? "Activa" : "Inactiva"}</td>
+      <td><button class="btn-editar" data-id="${s.id}">Editar</button></td>
+      <td><button class="btn-editar" data-toggle-id="${s.id}" data-activo="${s.activo}">${s.activo ? "Desactivar" : "Reactivar"}</button></td>
+    </tr>
+  `).join("");
+
+  tbody.querySelectorAll(".btn-editar[data-id]").forEach(btn => {
+    btn.addEventListener("click", () => abrirPanelEdicion(btn.dataset.id));
+  });
+  tbody.querySelectorAll("[data-toggle-id]").forEach(btn => {
+    btn.addEventListener("click", () => toggleActivo(btn.dataset.toggleId, btn.dataset.activo === "true"));
+  });
+}
+
+document.getElementById("buscador").addEventListener("input", renderTabla);
+document.getElementById("filtro-tipo").addEventListener("change", renderTabla);
+document.getElementById("filtro-solo-activas").addEventListener("change", renderTabla);
+
+async function toggleActivo(skillId, activoActual) {
+  const skill = catalogo.skills.find(s => s.id === skillId);
+  const nuevoEstado = !activoActual;
+  const confirmMsg = nuevoEstado
+    ? `¿Reactivar "${skill.nombre.trim()}"? Volverá a aparecer en los formularios de evaluación.`
+    : `¿Desactivar "${skill.nombre.trim()}"? Dejará de aparecer en nuevas evaluaciones, pero el histórico existente no se modifica.`;
+  if (!confirm(confirmMsg)) return;
+
+  document.getElementById("status").textContent = "Actualizando...";
+  await fetch(POST_TOGGLE_ACTIVO_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ record_id: skillId, activo: nuevoEstado })
+  });
+  document.getElementById("status").textContent = nuevoEstado ? "Habilidad reactivada." : "Habilidad desactivada.";
+  cargarSkills();
+}
+
+function togglePerfilWrap() {
+  const tipo = document.getElementById("f-tipo").value;
+  document.getElementById("f-perfil-wrap").classList.toggle("hidden", tipo === "Soft Skill");
+}
+document.getElementById("f-tipo").addEventListener("change", togglePerfilWrap);
+
+function limpiarPanel() {
+  document.getElementById("f-nombre").value = "";
+  document.getElementById("f-tipo").value = "Funcion";
+  document.getElementById("f-perfil").value = "";
+  document.getElementById("f-descripcion").value = "";
+  document.getElementById("f-nivel-basic").value = "";
+  document.getElementById("f-nivel-intermediate").value = "";
+  document.getElementById("f-nivel-advanced").value = "";
+  document.getElementById("f-nivel-expert").value = "";
+  document.getElementById("form-error").classList.add("hidden");
+  togglePerfilWrap();
+}
+
+document.getElementById("btn-nueva").addEventListener("click", () => {
+  skillEditandoId = null;
+  limpiarPanel();
+  document.getElementById("panel-titulo").textContent = "Nueva habilidad";
+  document.getElementById("panel-form").classList.remove("hidden");
+  document.getElementById("panel-form").scrollIntoView({ behavior: "smooth" });
+});
+
+function abrirPanelEdicion(skillId) {
+  const skill = catalogo.skills.find(s => s.id === skillId);
+  if (!skill) return;
+  skillEditandoId = skillId;
+
+  document.getElementById("f-nombre").value = skill.nombre.trim();
+  document.getElementById("f-tipo").value = skill.tipo;
+  document.getElementById("f-perfil").value = skill.perfil_rol || "";
+  document.getElementById("f-descripcion").value = skill.descripcion || "";
+  document.getElementById("f-nivel-basic").value = skill.niveles.Basic || "";
+  document.getElementById("f-nivel-intermediate").value = skill.niveles.Intermediate || "";
+  document.getElementById("f-nivel-advanced").value = skill.niveles.Advanced || "";
+  document.getElementById("f-nivel-expert").value = skill.niveles.Expert || "";
+  document.getElementById("form-error").classList.add("hidden");
+  togglePerfilWrap();
+
+  document.getElementById("panel-titulo").textContent = "Editar: " + skill.nombre.trim();
+  document.getElementById("panel-form").classList.remove("hidden");
+  document.getElementById("panel-form").scrollIntoView({ behavior: "smooth" });
+}
+
+document.getElementById("btn-cancelar").addEventListener("click", () => {
+  document.getElementById("panel-form").classList.add("hidden");
+});
+
+document.getElementById("btn-guardar").addEventListener("click", async () => {
+  const nombre = document.getElementById("f-nombre").value.trim();
+  const tipo = document.getElementById("f-tipo").value;
+  const perfil = document.getElementById("f-perfil").value.trim();
+  const descripcion = document.getElementById("f-descripcion").value.trim();
+  const nivelBasic = document.getElementById("f-nivel-basic").value.trim();
+  const nivelIntermediate = document.getElementById("f-nivel-intermediate").value.trim();
+  const nivelAdvanced = document.getElementById("f-nivel-advanced").value.trim();
+  const nivelExpert = document.getElementById("f-nivel-expert").value.trim();
+
+  const errorEl = document.getElementById("form-error");
+  const faltantes = [];
+  if (!nombre) faltantes.push("Nombre");
+  if (!nivelBasic) faltantes.push("Descripción Básico");
+  if (!nivelIntermediate) faltantes.push("Descripción Intermedio");
+  if (!nivelAdvanced) faltantes.push("Descripción Avanzado");
+  if (!nivelExpert) faltantes.push("Descripción Experto");
+  if (tipo !== "Soft Skill" && !perfil) faltantes.push("Área / Perfil de rol");
+
+  if (faltantes.length) {
+    errorEl.textContent = "Faltan campos obligatorios: " + faltantes.join(", ");
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  errorEl.classList.add("hidden");
+
+  const payload = {
+    nombre, tipo, perfil_rol: tipo === "Soft Skill" ? "" : perfil, descripcion,
+    nivel_basic: nivelBasic, nivel_intermediate: nivelIntermediate,
+    nivel_advanced: nivelAdvanced, nivel_expert: nivelExpert
+  };
+
+  const statusEl = document.getElementById("status");
+  statusEl.textContent = "Guardando...";
+
+  const url = skillEditandoId ? POST_ACTUALIZAR_SKILL_URL : POST_CREAR_SKILL_URL;
+  if (skillEditandoId) payload.record_id = skillEditandoId;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+
+  if (data.status === "error") {
+    errorEl.textContent = data.mensaje;
+    errorEl.classList.remove("hidden");
+    statusEl.textContent = "";
+    return;
+  }
+
+  statusEl.textContent = "Habilidad guardada correctamente.";
+  document.getElementById("panel-form").classList.add("hidden");
+  cargarSkills();
+});
+
+cargarSkills();
+</script>
+
+</body>
+</html>

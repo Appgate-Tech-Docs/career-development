@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Plan de Desarrollo (Career Path)</title>
+<style>
+  :root {
+    --navy: #081339; --medium-blue: #0072BA; --bright-blue: #65BAE8; --light-blue: #A0DBEB;
+    --medium-green: #109255; --bright-green: #85C54A; --dark-gray: #3B4053; --medium-gray: #8B91A9;
+    --light-gray: #D0D5E7; --lightest-gray: #EDEFF7; --black: #000000; --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; max-width: 800px; margin: 32px auto; padding: 0 16px 60px; background: var(--white); color: var(--dark-gray); }
+  h1 { font-size: 1.5rem; color: var(--navy); font-weight: 800; margin-bottom: 4px; }
+  .subtitle { color: var(--medium-gray); font-size: 0.9rem; margin-bottom: 20px; }
+  label { display: block; margin-top: 8px; font-weight: bold; color: var(--navy); }
+  select, input[type=date], textarea { width: 100%; padding: 9px; margin-top: 6px; border: 1px solid var(--light-gray); border-radius: 6px; background: var(--white); color: var(--dark-gray); font-size: 0.95rem; font-family: Arial, sans-serif; }
+  .hidden { display: none; }
+
+  .section-title { font-size: 1.1rem; color: var(--navy); font-weight: 800; margin: 28px 0 12px; }
+
+  .sugerencia-card {
+    border: 1px solid var(--light-gray); border-radius: 10px; padding: 16px; margin-bottom: 14px; background: var(--white);
+  }
+  .sugerencia-header { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+  .sugerencia-title { font-weight: bold; color: var(--navy); font-size: 1.05rem; }
+  .badge { display: inline-block; font-size: 0.7rem; font-weight: bold; padding: 2px 8px; border-radius: 10px; background: var(--light-blue); color: var(--navy); margin-left: 6px; }
+  .sugerencia-metric { font-size: 0.85rem; color: var(--medium-gray); margin: 6px 0 10px; }
+  .sugerencia-accion { font-size: 0.9rem; background: var(--lightest-gray); border-radius: 6px; padding: 10px; margin-bottom: 10px; }
+  .btn-crear { padding: 8px 16px; background: var(--medium-blue); color: var(--white); border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+  .btn-crear:hover { background: var(--navy); }
+  .btn-crear:disabled { background: var(--light-gray); color: var(--medium-gray); cursor: not-allowed; }
+
+  .form-compromiso { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--light-gray); }
+  .form-row { display: flex; gap: 10px; }
+  .form-row > div { flex: 1; }
+
+  .compromiso-card {
+    border-left: 4px solid var(--medium-blue); background: var(--lightest-gray); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px;
+  }
+  .compromiso-card.completado { border-left-color: var(--medium-green); }
+  .compromiso-card.en-curso { border-left-color: #b8860b; }
+  .compromiso-title { font-weight: bold; color: var(--navy); }
+  .compromiso-meta { font-size: 0.8rem; color: var(--medium-gray); margin: 4px 0 8px; }
+  .estado-select { max-width: 200px; display: inline-block; }
+  .btn-guardar { padding: 6px 14px; background: var(--medium-blue); color: var(--white); border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; margin-top: 8px; }
+  .btn-guardar:hover { background: var(--navy); }
+
+  .skills-badges { margin: 6px 0; }
+  .skill-badge-chip { display: inline-block; font-size: 0.72rem; font-weight: bold; padding: 2px 9px; border-radius: 10px; background: var(--white); border: 1px solid var(--light-blue); color: var(--navy); margin-right: 6px; margin-bottom: 4px; }
+
+  .manual-form {
+    border: 2px dashed var(--light-gray); border-radius: 10px; padding: 18px; margin-bottom: 20px;
+  }
+  .skills-picker {
+    max-height: 220px; overflow-y: auto; border: 1px solid var(--light-gray); border-radius: 6px;
+    padding: 10px; margin-top: 6px; background: var(--white);
+  }
+  .skills-picker-group-title { font-size: 0.75rem; font-weight: bold; color: var(--medium-gray); text-transform: uppercase; margin: 8px 0 4px; }
+  .skills-picker-item { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 0.88rem; }
+  .skills-picker-item input { margin: 0; }
+  .btn-toggle-manual { background: none; border: none; color: var(--medium-blue); font-weight: bold; cursor: pointer; font-size: 0.9rem; padding: 0; margin-bottom: 12px; }
+
+  #status { margin-top: 12px; color: var(--medium-gray); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<h1>Plan de Desarrollo (Career Path)</h1>
+<div class="subtitle">A partir de los gaps detectados, define compromisos concretos con fecha y responsable. Da seguimiento actualizando su estado.</div>
+
+<script>
+  const N8N_BASE = "https://n8n.appgate.dev/webhook";
+  const GET_CATALOGO_URL = `${N8N_BASE}/catalogo`;
+  const GET_SUGERENCIAS_URL = `${N8N_BASE}/sugerencias`;
+  const GET_COMPROMISOS_URL = `${N8N_BASE}/compromisos`;
+  const POST_COMPROMISOS_URL = `${N8N_BASE}/compromisos`;
+  const POST_ACTUALIZAR_URL = `${N8N_BASE}/compromisos/actualizar`;
+</script>
+
+<label for="lider">Tu nombre (líder)</label>
+<select id="lider"></select>
+
+<div id="colaborador-wrap" class="hidden">
+  <label for="colaborador">Colaborador</label>
+  <select id="colaborador"></select>
+</div>
+
+<div id="status"></div>
+
+<div id="contenido" class="hidden">
+  <div class="section-title">Sugerencias de crecimiento (basadas en sus gaps actuales)</div>
+  <div id="sugerencias-list"></div>
+
+  <div class="section-title">Crear trabajo de desarrollo manual</div>
+  <button class="btn-toggle-manual" id="btn-toggle-manual">+ Definir manualmente un proyecto de desarrollo</button>
+  <div class="manual-form hidden" id="manual-form">
+    <label>Nombre del proyecto / trabajo</label>
+    <input type="text" id="manual-titulo" placeholder="Ej. Certificación en arquitectura cloud">
+
+    <label>Habilidades a trabajar (puedes elegir varias, hard y/o soft)</label>
+    <div class="skills-picker" id="manual-skills-picker"></div>
+
+    <label>Acción / descripción del trabajo</label>
+    <textarea id="manual-accion" rows="2" placeholder="Describe en qué consiste el trabajo o proyecto..."></textarea>
+
+    <div class="form-row">
+      <div>
+        <label>Fecha compromiso</label>
+        <input type="date" id="manual-fecha">
+      </div>
+      <div>
+        <label>Responsable</label>
+        <input type="text" id="manual-responsable">
+      </div>
+    </div>
+    <button class="btn-crear" style="margin-top:12px" id="btn-guardar-manual">Guardar proyecto</button>
+  </div>
+
+  <div class="section-title">Compromisos activos</div>
+  <div id="compromisos-list"></div>
+</div>
+
+<script>
+let catalogo = { personas: [] };
+let colaboradorActual = null;
+let liderActual = null;
+
+async function cargarLideres() {
+  const res = await fetch(GET_CATALOGO_URL);
+  catalogo = await res.json();
+  const liderIds = new Set(catalogo.personas.filter(p => p.lider_id).map(p => p.lider_id));
+  const lideres = catalogo.personas.filter(p => liderIds.has(p.id));
+
+  const select = document.getElementById("lider");
+  select.innerHTML = '<option value="">-- Selecciona --</option>' +
+    lideres.map(p => `<option value="${p.id}">${p.nombre}</option>`).join("");
+  select.addEventListener("change", cargarColaboradores);
+  document.getElementById("colaborador").addEventListener("change", cargarTodo);
+}
+
+function cargarColaboradores() {
+  const liderId = document.getElementById("lider").value;
+  const wrap = document.getElementById("colaborador-wrap");
+  if (!liderId) { wrap.classList.add("hidden"); return; }
+
+  liderActual = catalogo.personas.find(p => p.id === liderId);
+  const colaboradores = catalogo.personas.filter(p => p.lider_id === liderId);
+  const select = document.getElementById("colaborador");
+  select.innerHTML = '<option value="">-- Selecciona --</option>' +
+    colaboradores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join("");
+  wrap.classList.remove("hidden");
+  document.getElementById("contenido").classList.add("hidden");
+}
+
+function renderSkillsPicker() {
+  const activas = catalogo.skills.filter(s => s.activo !== false);
+  const funciones = activas.filter(s => s.tipo === "Funcion" && s.perfil_rol === colaboradorActual.perfil_rol);
+  const hardSkills = activas.filter(s => s.tipo === "Hard Skill" && s.perfil_rol === colaboradorActual.perfil_rol);
+  const softSkills = activas.filter(s => s.tipo === "Soft Skill");
+
+  const grupo = (titulo, skills) => skills.length ? `
+    <div class="skills-picker-group-title">${titulo}</div>
+    ${skills.map(s => `
+      <label class="skills-picker-item">
+        <input type="checkbox" value="${s.id}" data-nombre="${s.nombre.trim()}">
+        ${s.nombre.trim()}
+      </label>
+    `).join("")}
+  ` : "";
+
+  document.getElementById("manual-skills-picker").innerHTML =
+    grupo("Funciones", funciones) + grupo("Hard Skills", hardSkills) + grupo("Soft Skills", softSkills);
+}
+
+async function cargarTodo() {
+  const colaboradorId = document.getElementById("colaborador").value;
+  const statusEl = document.getElementById("status");
+  const contenido = document.getElementById("contenido");
+  if (!colaboradorId) { contenido.classList.add("hidden"); return; }
+
+  colaboradorActual = catalogo.personas.find(p => p.id === colaboradorId);
+  statusEl.textContent = "Cargando...";
+
+  const [sugResp, compResp] = await Promise.all([
+    fetch(`${GET_SUGERENCIAS_URL}?persona_id=${colaboradorId}`).then(r => r.json()),
+    fetch(`${GET_COMPROMISOS_URL}?persona_id=${colaboradorId}`).then(r => r.json())
+  ]);
+
+  if (sugResp.error) {
+    statusEl.textContent = sugResp.error;
+    contenido.classList.add("hidden");
+    return;
+  }
+  statusEl.textContent = "";
+  contenido.classList.remove("hidden");
+
+  renderSugerencias(sugResp.sugerencias || []);
+  renderCompromisos(compResp.compromisos || []);
+  renderSkillsPicker();
+  document.getElementById("manual-responsable").value = liderActual ? liderActual.nombre : "";
+  document.getElementById("manual-form").classList.add("hidden");
+}
+
+function renderSugerencias(sugerencias) {
+  const list = document.getElementById("sugerencias-list");
+  if (!sugerencias.length) {
+    list.innerHTML = "<p style='color:var(--medium-gray)'>No hay suficientes datos de evaluación todavía para generar sugerencias.</p>";
+    return;
+  }
+  list.innerHTML = sugerencias.map((s, i) => `
+    <div class="sugerencia-card">
+      <div class="sugerencia-header">
+        <div class="sugerencia-title">${s.skill_nombre}<span class="badge">${s.tipo}</span></div>
+      </div>
+      <div class="sugerencia-metric">Promedio actual: <b>${s.promedio_actual}</b>${s.promedio_area !== null ? ` · Promedio del área: ${s.promedio_area}` : ""}</div>
+      <div class="sugerencia-accion">${s.accion_sugerida}</div>
+      <button class="btn-crear" data-index="${i}">+ Crear compromiso</button>
+      <div class="form-compromiso hidden" id="form-${i}">
+        <label>Acción (edítala si quieres)</label>
+        <textarea id="accion-${i}" rows="2">${s.accion_sugerida}</textarea>
+        <div class="form-row">
+          <div>
+            <label>Fecha compromiso</label>
+            <input type="date" id="fecha-${i}">
+          </div>
+          <div>
+            <label>Responsable</label>
+            <input type="text" id="responsable-${i}" value="${liderActual ? liderActual.nombre : ''}">
+          </div>
+        </div>
+        <button class="btn-crear" style="margin-top:10px" data-guardar="${i}" data-skill="${s.skill_id}">Guardar compromiso</button>
+      </div>
+    </div>
+  `).join("");
+
+  list.querySelectorAll("[data-index]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.getElementById(`form-${btn.dataset.index}`).classList.toggle("hidden");
+    });
+  });
+
+  list.querySelectorAll("[data-guardar]").forEach(btn => {
+    btn.addEventListener("click", () => crearCompromiso(btn.dataset.guardar, btn.dataset.skill));
+  });
+}
+
+async function crearCompromiso(index, skillId) {
+  const accion = document.getElementById(`accion-${index}`).value;
+  const fecha = document.getElementById(`fecha-${index}`).value;
+  const responsable = document.getElementById(`responsable-${index}`).value;
+  const statusEl = document.getElementById("status");
+
+  if (!fecha) { alert("Selecciona una fecha de compromiso."); return; }
+
+  const skill = catalogo.skills.find(s => s.id === skillId);
+
+  statusEl.textContent = "Guardando compromiso...";
+  await fetch(POST_COMPROMISOS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      persona_id: colaboradorActual.id,
+      skill_ids: [skillId],
+      titulo_proyecto: skill ? skill.nombre.trim() : "Sugerencia de desarrollo",
+      accion_recomendada: accion,
+      responsable,
+      fecha_compromiso: fecha
+    })
+  });
+  statusEl.textContent = "Compromiso guardado.";
+  cargarTodo();
+}
+
+async function crearCompromisoManual() {
+  const titulo = document.getElementById("manual-titulo").value.trim();
+  const accion = document.getElementById("manual-accion").value.trim();
+  const fecha = document.getElementById("manual-fecha").value;
+  const responsable = document.getElementById("manual-responsable").value.trim();
+  const skillIds = Array.from(document.querySelectorAll("#manual-skills-picker input:checked")).map(cb => cb.value);
+  const statusEl = document.getElementById("status");
+
+  if (!titulo) { alert("Ponle un nombre al proyecto/trabajo."); return; }
+  if (!skillIds.length) { alert("Selecciona al menos una habilidad a trabajar."); return; }
+  if (!fecha) { alert("Selecciona una fecha de compromiso."); return; }
+
+  statusEl.textContent = "Guardando proyecto...";
+  await fetch(POST_COMPROMISOS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      persona_id: colaboradorActual.id,
+      skill_ids: skillIds,
+      titulo_proyecto: titulo,
+      accion_recomendada: accion,
+      responsable,
+      fecha_compromiso: fecha
+    })
+  });
+  statusEl.textContent = "Proyecto guardado.";
+  cargarTodo();
+}
+
+function renderCompromisos(compromisos) {
+  const list = document.getElementById("compromisos-list");
+  if (!compromisos.length) {
+    list.innerHTML = "<p style='color:var(--medium-gray)'>Todavía no hay compromisos creados para esta persona.</p>";
+    return;
+  }
+  const claseEstado = { "Completado": "completado", "En curso": "en-curso", "No iniciado": "" };
+  list.innerHTML = compromisos.map(c => `
+    <div class="compromiso-card ${claseEstado[c.estado] || ''}">
+      <div class="compromiso-title">${c.titulo_proyecto || "Proyecto de desarrollo"}</div>
+      <div class="skills-badges">${(c.skills || []).map(s => `<span class="skill-badge-chip">${s}</span>`).join("")}</div>
+      <div class="compromiso-meta">${c.accion_recomendada}</div>
+      <div class="compromiso-meta">Responsable: ${c.responsable} · Fecha compromiso: ${c.fecha_compromiso || "-"}</div>
+      <label>Estado</label>
+      <select class="estado-select" id="estado-${c.id}">
+        <option value="No iniciado" ${c.estado === "No iniciado" ? "selected" : ""}>No iniciado</option>
+        <option value="En curso" ${c.estado === "En curso" ? "selected" : ""}>En curso</option>
+        <option value="Completado" ${c.estado === "Completado" ? "selected" : ""}>Completado</option>
+      </select>
+      <label>Notas de seguimiento</label>
+      <textarea id="notas-${c.id}" rows="2">${c.notas_seguimiento || ""}</textarea>
+      <button class="btn-guardar" data-id="${c.id}">Guardar seguimiento</button>
+    </div>
+  `).join("");
+
+  list.querySelectorAll(".btn-guardar").forEach(btn => {
+    btn.addEventListener("click", () => actualizarCompromiso(btn.dataset.id));
+  });
+}
+
+async function actualizarCompromiso(id) {
+  const estado = document.getElementById(`estado-${id}`).value;
+  const notas = document.getElementById(`notas-${id}`).value;
+  const statusEl = document.getElementById("status");
+
+  statusEl.textContent = "Guardando seguimiento...";
+  await fetch(POST_ACTUALIZAR_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ record_id: id, estado, notas_seguimiento: notas })
+  });
+  statusEl.textContent = "Seguimiento actualizado.";
+  cargarTodo();
+}
+
+document.getElementById("btn-toggle-manual").addEventListener("click", () => {
+  document.getElementById("manual-form").classList.toggle("hidden");
+});
+document.getElementById("btn-guardar-manual").addEventListener("click", crearCompromisoManual);
+
+cargarLideres();
+</script>
+
+</body>
+</html>
