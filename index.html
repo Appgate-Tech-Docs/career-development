@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Career Development Tool - PoC</title>
+<style>
+  :root {
+    --navy: #081339; --medium-blue: #0072BA; --bright-blue: #65BAE8; --light-blue: #A0DBEB;
+    --medium-green: #109255; --bright-green: #85C54A; --dark-gray: #3B4053; --medium-gray: #8B91A9;
+    --light-gray: #D0D5E7; --lightest-gray: #EDEFF7; --black: #000000; --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; max-width: 980px; margin: 0 auto; padding: 40px 20px 80px; background: var(--white); color: var(--dark-gray); }
+  h1 { font-size: 1.9rem; color: var(--navy); font-weight: 800; margin-bottom: 6px; }
+  .subtitle { color: var(--medium-gray); font-size: 1rem; margin-bottom: 32px; max-width: 640px; }
+  h2 { font-size: 1.25rem; color: var(--navy); font-weight: 800; margin: 40px 0 16px; }
+  p { line-height: 1.5; }
+
+  /* Diagrama */
+  .flow-wrap { overflow-x: auto; margin-bottom: 12px; }
+  .flow { display: flex; align-items: stretch; gap: 0; min-width: 760px; }
+  .flow-step {
+    flex: 1; background: var(--lightest-gray); border: 2px solid var(--light-gray); border-radius: 10px;
+    padding: 14px; text-align: center; position: relative;
+  }
+  .flow-step .icon { font-size: 1.6rem; }
+  .flow-step .title { font-weight: bold; color: var(--navy); font-size: 0.9rem; margin-top: 6px; }
+  .flow-step .desc { font-size: 0.75rem; color: var(--medium-gray); margin-top: 4px; }
+  .flow-arrow { display: flex; align-items: center; justify-content: center; width: 36px; color: var(--medium-blue); font-size: 1.4rem; font-weight: bold; }
+  .flow-caption { font-size: 0.8rem; color: var(--medium-gray); text-align: center; margin-top: 8px; }
+
+  /* Tarjetas de paginas */
+  .pages-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 12px; }
+  .page-card { border: 1px solid var(--light-gray); border-radius: 12px; padding: 20px; }
+  .page-card .badge {
+    display: inline-block; font-size: 0.7rem; font-weight: bold; padding: 3px 10px; border-radius: 12px;
+    background: var(--light-blue); color: var(--navy); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.02em;
+  }
+  .page-card h3 { color: var(--navy); font-size: 1.05rem; margin: 0 0 8px; }
+  .page-card p { font-size: 0.88rem; margin: 0 0 6px; }
+  .page-card ul { font-size: 0.85rem; padding-left: 18px; margin: 8px 0; }
+  .page-card ul li { margin-bottom: 4px; }
+  .page-card a.btn {
+    display: inline-block; margin-top: 10px; padding: 8px 18px; background: var(--medium-blue); color: var(--white);
+    text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem;
+  }
+  .page-card a.btn:hover { background: var(--navy); }
+
+  /* Metricas */
+  .metric-item { border-left: 3px solid var(--medium-blue); padding: 8px 14px; margin-bottom: 12px; background: var(--lightest-gray); border-radius: 0 8px 8px 0; }
+  .metric-item b { color: var(--navy); }
+
+  .nota {
+    background: var(--lightest-gray); border-left: 4px solid var(--bright-blue); border-radius: 0 8px 8px 0;
+    padding: 12px 16px; font-size: 0.88rem; margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Career Development Tool — Prueba de Concepto</h1>
+<div class="subtitle">Evaluación de desempeño 360° (Employee / Leader / Peer) con dashboards accionables y planes de desarrollo con seguimiento.</div>
+
+<h2>Cómo funciona el flujo completo</h2>
+<div class="flow-wrap">
+  <div class="flow">
+    <div class="flow-step">
+      <div class="icon">📝</div>
+      <div class="title">Formularios</div>
+      <div class="desc">Employee, Leader y Peer llenan la autoevaluación / evaluación</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="icon">🗄️</div>
+      <div class="title">Almacenamiento central</div>
+      <div class="desc">Guarda personas, catálogo de skills y evaluaciones de forma segura</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="icon">📊</div>
+      <div class="title">Dashboards</div>
+      <div class="desc">Calculan promedios, gaps y comparaciones</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="icon">🎯</div>
+      <div class="title">Career Path</div>
+      <div class="desc">El líder convierte gaps en compromisos con fecha</div>
+    </div>
+  </div>
+</div>
+<div class="flow-caption">Cada respuesta se guarda de forma centralizada y segura, para que los dashboards y el plan de desarrollo siempre reflejen información consistente y actualizada.</div>
+
+<h2>Páginas de este sitio</h2>
+<div class="pages-grid">
+
+  <div class="page-card">
+    <span class="badge">Formulario</span>
+    <h3>Autoevaluación (Employee)</h3>
+    <p>Cada persona evalúa su propio nivel en las funciones, hard skills y soft skills de su perfil.</p>
+    <ul>
+      <li>Selecciona tu nombre.</li>
+      <li>Responde una pregunta a la vez — cada nivel trae su descripción completa, no adivines.</li>
+      <li>Revisa el resumen antes de enviar.</li>
+    </ul>
+    <a class="btn" href="employee.html">Abrir formulario →</a>
+  </div>
+
+  <div class="page-card">
+    <span class="badge">Formulario</span>
+    <h3>Evaluación de Líder</h3>
+    <p>El líder evalúa a cada colaborador de su equipo directo.</p>
+    <ul>
+      <li>Selecciona tu nombre como líder.</li>
+      <li>Elige al colaborador a evaluar (solo aparecen tus reportes directos).</li>
+      <li>Responde con base en lo observado, no en el potencial.</li>
+    </ul>
+    <a class="btn" href="leader.html">Abrir formulario →</a>
+  </div>
+
+  <div class="page-card">
+    <span class="badge">Formulario</span>
+    <h3>Evaluación entre Pares</h3>
+    <p>Un compañero cercano evalúa de forma completa, o un evaluador externo evalúa solo hard skills con estándar de industria.</p>
+    <ul>
+      <li><b>Interno:</b> compañero de tu misma área, evaluación completa.</li>
+      <li><b>Externo:</b> proveedor/evaluador técnico, solo hard skills.</li>
+    </ul>
+    <a class="btn" href="peer.html">Abrir formulario →</a>
+  </div>
+
+  <div class="page-card">
+    <span class="badge">Dashboard</span>
+    <h3>Dashboard de Líder</h3>
+    <p>Vista del equipo completo (incluye niveles jerárquicos por debajo, no solo directos).</p>
+    <ul>
+      <li>KPIs generales y por categoría del equipo.</li>
+      <li>Top 8 gaps priorizados de todo el equipo.</li>
+      <li>Tabla ordenada de menor a mayor promedio, con detalle expandible por persona.</li>
+    </ul>
+    <a class="btn" href="dashboard_lider.html">Abrir dashboard →</a>
+  </div>
+
+  <div class="page-card">
+    <span class="badge">Dashboard</span>
+    <h3>Mi Dashboard de Desarrollo</h3>
+    <p>Vista individual: cómo te ves tú, tu líder y tus pares, comparado contra el promedio de tu área.</p>
+    <ul>
+      <li>Radar de Funciones / Hard Skills / Soft Skills.</li>
+      <li>Tus 5 prioridades de desarrollo (gaps más bajos).</li>
+      <li>Tabla detallada con indicador ▲/▼ contra el promedio del área.</li>
+    </ul>
+    <a class="btn" href="dashboard_personal.html">Abrir dashboard →</a>
+  </div>
+
+  <div class="page-card">
+    <span class="badge">Plan de acción</span>
+    <h3>Career Path — Plan de Desarrollo</h3>
+    <p>Convierte los gaps detectados en compromisos reales, con fecha, responsable y seguimiento.</p>
+    <ul>
+      <li>Selecciona líder → colaborador.</li>
+      <li>Recibe 3 sugerencias de crecimiento automáticas según sus gaps.</li>
+      <li>Crea compromisos con fecha, y actualiza estado / notas de seguimiento en el tiempo.</li>
+      <li>También puedes crear proyectos manuales combinando varias habilidades.</li>
+    </ul>
+    <a class="btn" href="career_path.html">Abrir plan de desarrollo →</a>
+  </div>
+
+  <div class="page-card">
+    <span class="badge">Administración</span>
+    <h3>Gestión del Catálogo de Habilidades</h3>
+    <p>Edita las funciones, hard skills y soft skills existentes, o crea nuevas para nuevos perfiles de rol.</p>
+    <ul>
+      <li>Busca y filtra por tipo de habilidad.</li>
+      <li>Edita nombre, área/perfil y las 4 descripciones de nivel.</li>
+      <li>No se puede guardar una habilidad sin las 4 descripciones de nivel completas.</li>
+    </ul>
+    <a class="btn" href="gestion_skills.html">Abrir gestión de habilidades →</a>
+  </div>
+
+</div>
+
+<h2>Qué significan las métricas</h2>
+<div class="metric-item"><b>Promedio general:</b> promedio de todas las skills evaluadas de una persona, combinando las 3 perspectivas (Employee, Leader, Peer).</div>
+<div class="metric-item"><b>Promedio por categoría (Función / Hard Skill / Soft Skill):</b> el mismo cálculo pero separado por tipo de competencia — permite ver si el gap es técnico, funcional o de comportamiento.</div>
+<div class="metric-item"><b>Employee / Leader / Peer (por skill):</b> el promedio de puntaje que dio cada tipo de evaluador para esa skill específica. Una diferencia grande entre ellos revela una brecha de percepción (ej. la persona se autoevalúa más alto que su líder).</div>
+<div class="metric-item"><b>Promedio del área (▲ / ▼):</b> el promedio de esa misma skill entre los demás compañeros de la misma área — sirve como referencia de "dónde estoy parado frente a mi equipo", no como un objetivo absoluto.</div>
+<div class="metric-item"><b>Top gaps / Prioridades de desarrollo:</b> las skills con el promedio más bajo — son las candidatas naturales para convertirse en compromisos de desarrollo en el Career Path.</div>
+
+<div class="nota">
+  <b>Nota sobre esta PoC:</b> los dashboards no se recalculan en tiempo real en cada clic — se generan con el script <code>compute_dashboards.py</code>, que debe correrse cada vez que se quiera refrescar los números (por ejemplo, al cerrar una ronda de evaluación). Esto es intencional: mantiene el sistema simple de operar para un equipo de RH sin soporte técnico permanente.
+</div>
+
+</body>
+</html>
