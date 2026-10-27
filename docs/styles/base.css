@@ -197,6 +197,11 @@ img, svg, video, canvas {
    fires transitionend, so JS that waits on it does not hang.
    -------------------------------------------------------------------------- */
 
+html { scroll-padding-block-start: 5rem; }
+html:has(.wizard__nav--fija) { scroll-padding-block-end: 6rem; }
+/* En angosto el encabezado no es fijo. */
+@media (max-width: 48rem) { html { scroll-padding-block-start: var(--space-sm); } }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 

@@ -117,27 +117,46 @@ export function gapHtml(severidad, { esperado = null, escalones = null } = {}) {
 }
 
 /**
+ * Estado de una evaluación (de estadoEvaluacion en almacen.js) como etiqueta.
+ * Texto siempre presente: el color solo acompaña.
+ */
+export function estadoTareaHtml({ estado, respondidas = 0 }, total = null) {
+  if (estado === 'enviada') return '<span class="badge badge--success">Enviada</span>';
+  if (estado === 'borrador') {
+    return `<span class="badge badge--info">En borrador${total ? ` · ${respondidas} de ${total}` : ''}</span>`;
+  }
+  return '<span class="badge badge--warning">Sin empezar</span>';
+}
+
+/**
  * Total + cumplimiento, siempre juntos.
  *
  * Verificado con datos reales: alguien en 44.88 puede cumplir 18 de 18 y alguien
  * en 70.00 cumplir 3 de 18. El número solo invita a la conclusión contraria, así
  * que este componente no permite mostrar uno sin el otro.
  */
-export function totalConCumplimiento({ total, nivel, cumplimiento, margen = null, vecina = null }) {
+export function totalConCumplimiento({ total, nivel, cumplimiento, margen = null, vecina = null, evaluadas = null, sinEvaluar = 0 }) {
   const num = total === null || total === undefined ? '—' : Number(total).toFixed(1);
   const cerca = margen !== null && margen !== undefined && vecina && margen <= 3;
+  // «Sin nivel esperado» y «nadie evaluó todavía» se veían igual: al abrir la
+  // ronda todo el mundo parecía no tener brechas.
+  const sinDatos = evaluadas === 0;
 
   return `<div class="score-total">
     <div class="score-total__cifra">
       <span class="score-total__num numeric">${esc(num)}</span>
+      ${num !== '—' ? '<span class="score-total__escala">de 100</span>' : ''}
       ${nivel ? `<span class="badge badge--neutral">${esc(nivel)}</span>` : ''}
     </div>
-    ${cumplimiento
-      ? `<p class="score-total__cumple">
-           <b class="numeric">${cumplimiento.cumple} de ${cumplimiento.total}</b>
-           habilidades en su nivel esperado
-         </p>`
-      : '<p class="score-total__cumple text-muted">Sin nivel esperado: no hay brechas que medir.</p>'}
+    ${sinDatos
+      ? '<p class="score-total__cumple">Todavía no hay evaluaciones en esta ronda: el resultado aparece cuando llegue la primera.</p>'
+      : cumplimiento
+        ? `<p class="score-total__cumple">
+             <b class="numeric">${cumplimiento.cumple} de ${cumplimiento.total}</b>
+             habilidades en su nivel esperado${sinEvaluar
+               ? ` · <span class="texto-aviso">${sinEvaluar} ${sinEvaluar === 1 ? 'sin evaluar' : 'sin evaluar todavía'}</span>` : ''}
+           </p>`
+        : '<p class="score-total__cumple">El cargo no define un nivel esperado: no hay brechas que medir.</p>'}
     ${cerca
       ? `<p class="score-total__umbral">
            ${icon('alert')}
@@ -296,15 +315,23 @@ function regionOcupado() {
  * Deshabilitar el botón enfocado manda el foco a <body>; al terminar, si nadie
  * lo movió, vuelve al botón.
  */
-export async function withBusy(button, fn, { label = 'Procesando…' } = {}) {
+export async function withBusy(button, fn, { label = null } = {}) {
   const teniaFoco = document.activeElement === button;
+  // Con una etiqueta, el botón la muestra mientras espera («Guardando…»): el
+  // giro solo no dice qué está pasando durante los 5 a 10 segundos de una
+  // escritura. Sin etiqueta conserva su texto, que ya describe la acción.
+  // Un botón de solo ícono (quitar un chip) no tiene dónde mostrar texto.
+  const conTexto = (b) => { const c = b.cloneNode(true); c.querySelectorAll('.sr-only').forEach((x) => x.remove()); return c.textContent.trim() !== ''; };
+  const original = label && button && conTexto(button) ? button.innerHTML : null;
   setBusy(button, true);
+  if (original !== null) button.textContent = label;
   const region = regionOcupado();
-  region.textContent = label;
+  region.textContent = label ?? 'Procesando…';
   try {
     return await fn();
   } finally {
     region.textContent = '';
+    if (original !== null && button?.isConnected) button.innerHTML = original;
     if (teniaFoco && button?.isConnected && (document.activeElement === document.body || !document.activeElement)) {
       queueMicrotask(() => button.focus());
     }
@@ -610,6 +637,43 @@ export function bindModal(dialog) {
   // on children bubble from inside the box and must not close it.
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) closeModal(dialog);
+  });
+}
+
+/**
+ * Confirmación con la consecuencia por escrito. Resuelve true o false.
+ *
+ * El botón que destruye dice qué destruye («Eliminar el plan», no «Aceptar») y
+ * va en rojo; el foco arranca en la opción segura, así un Enter apurado no
+ * borra nada.
+ */
+export function confirmar({ titulo, cuerpo = '', aceptar, cancelar = 'Cancelar', peligro = false }) {
+  return new Promise((resolve) => {
+    const d = document.createElement('dialog');
+    d.className = 'modal';
+    d.setAttribute('aria-labelledby', 'confirmar-titulo');
+    if (cuerpo) d.setAttribute('aria-describedby', 'confirmar-cuerpo');
+    d.innerHTML = `
+      <div class="modal__body">
+        <h2 class="modal__title" id="confirmar-titulo">${esc(titulo)}</h2>
+        ${cuerpo ? `<p class="modal__lede" id="confirmar-cuerpo">${esc(cuerpo)}</p>` : ''}
+        <div class="modal__actions">
+          <button type="button" class="btn btn--secondary" data-no>${esc(cancelar)}</button>
+          <button type="button" class="btn ${peligro ? 'btn--danger' : 'btn--primary'}" data-si>${esc(aceptar)}</button>
+        </div>
+      </div>`;
+    const volver = document.activeElement;
+    let respuesta = false;
+    d.querySelector('[data-si]').addEventListener('click', () => { respuesta = true; d.close(); });
+    d.querySelector('[data-no]').addEventListener('click', () => d.close());
+    d.addEventListener('close', () => {
+      d.remove();
+      if (volver?.isConnected) volver.focus();
+      resolve(respuesta);
+    });
+    document.body.appendChild(d);
+    d.showModal();
+    d.querySelector('[data-no]').focus();
   });
 }
 

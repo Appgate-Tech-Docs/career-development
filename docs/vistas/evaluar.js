@@ -74,14 +74,25 @@ export function vistaEvaluar({ sesion, params }) {
   const preguntas = preguntasDe(evaluado.id);
   const texto = TEXTO_ROL[rol];
 
+  const volver = rol === 'Leader'
+    ? { href: '#/equipo', texto: 'Volver a Mi equipo' }
+    : rol === 'Employee' ? { href: '#/mi-desarrollo', texto: 'Volver a Mi desarrollo' }
+      : { href: '#/', texto: 'Volver al inicio' };
+  const enlaceVolver = `<a class="task-link volver" href="${volver.href}">
+      ${icon('chevronRight', { className: 'rotate-180' })} ${volver.texto}</a>`;
+
   if (!ronda()?.abierta) {
     return {
-      html: emptyState({
-        title: 'La ronda está cerrada',
-        body: 'Ya no se pueden enviar ni cambiar evaluaciones. Si necesitas corregir algo, '
-            + 'habla con el equipo de Personas.',
-        glyph: 'lock',
-      }),
+      html: `
+        <div class="page-header">
+          ${enlaceVolver}
+          <h1 class="page-header__title">La ronda está cerrada</h1>
+        </div>
+        ${emptyState({
+          title: 'Ya no se pueden enviar ni cambiar evaluaciones',
+          body: 'Si necesitas corregir algo, habla con el equipo de Personas.',
+          glyph: 'lock',
+        })}`,
     };
   }
 
@@ -93,10 +104,8 @@ export function vistaEvaluar({ sesion, params }) {
 
   return {
     html: `
-      <div class="page-header">
-        <a class="task-link volver" href="#/">
-          ${icon('chevronRight', { className: 'rotate-180' })} Volver al inicio
-        </a>
+      <div class="page-header wizard__cabecera">
+        ${enlaceVolver}
         <h1 class="page-header__title">${esc(titulo)}</h1>
         <p class="page-header__lede">${esc(texto.lede)}</p>
         <p class="card__meta">
@@ -130,8 +139,9 @@ export function vistaEvaluar({ sesion, params }) {
           return { registros_creados: r.guardadas };
         },
 
-        mensajeFinal: (n) => `Se registraron ${n} respuestas. Puedes volver a abrir esta `
-          + 'evaluación y cambiarla mientras la ronda siga abierta.',
+        mensajeFinal: (n) => `Se guardaron tus ${n} respuestas. Puedes volver a abrir esta `
+          + 'evaluación y cambiarla mientras la ronda siga abierta.'
+          + (rol === 'Employee' ? ' Tu resultado es parcial hasta que lleguen las de tu líder y tus pares.' : ''),
 
         onFinish: () => {
           toast('Evaluación enviada. Los promedios ya se actualizaron.', 'success');
@@ -140,15 +150,19 @@ export function vistaEvaluar({ sesion, params }) {
 
           // Lo que hace que esto se sienta un producto y no una pantalla: el
           // cierre ofrece la siguiente tarea, no un enlace genérico al inicio.
-          const siguiente = pendientes(sesion.persona.id)[0];
+          const todas = pendientes(sesion.persona.id);
+          const tipo = rol === 'Leader' ? 'equipo' : rol === 'Peer' ? 'par' : 'autoevaluacion';
+          const mismas = todas.filter((t) => t.tipo === tipo);
+          const siguiente = mismas[0] ?? todas[0];
+          const quedan = mismas.length;
           acciones.innerHTML = `
             ${siguiente ? `
               <button type="button" class="btn btn--primary" data-siguiente="${esc(siguiente.ruta)}">
-                ${esc(siguiente.titulo)}
+                Siguiente: ${esc(siguiente.titulo)}${siguiente.tipo === tipo && quedan > 1 ? ` (quedan ${quedan})` : ''}
               </button>` : ''}
             ${rol === 'Employee' ? `
-              <button type="button" class="btn btn--secondary" data-ir="#/mi-desarrollo">
-                Ver mi perfil
+              <button type="button" class="btn ${siguiente ? 'btn--secondary' : 'btn--primary'}" data-ir="#/mi-desarrollo">
+                Ver mi resultado
               </button>` : ''}
             ${/* Solo el líder puede abrir ese perfil. Ofrecérselo a un par sería
                   mandarlo a una pantalla que le va a negar el acceso, que es peor

@@ -213,7 +213,7 @@ export function vistaCatalogo({ sesion }) {
 
         try {
           await withBusy(ev.currentTarget, () => (editandoId
-            ? actualizarSkill(editandoId, datos) : crearSkill(datos)));
+            ? actualizarSkill(editandoId, datos) : crearSkill(datos)), { label: 'Guardando…' });
         } catch (e) {
           toast(`No se guardó: ${e.message}`, 'error');
           return;

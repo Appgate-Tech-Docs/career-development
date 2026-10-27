@@ -46,10 +46,10 @@
 </footer>
 
 <script type="module">
-import { icon, esc, toast, withBusy } from './lib/ui.js';
+import { icon, esc, toast, withBusy, confirmar, emptyState } from './lib/ui.js';
 import { ocultarTooltip } from './lib/graficas.js';
 import {
-  iniciar, sesion, salir, ronda, ROLES, pendientes, descartarSesion,
+  iniciar, sesion, salir, ronda, ROLES, pendientes, descartarSesion, borradoresSinEnviar,
 } from './lib/almacen.js';
 import { ruta, configurar, iniciarRuteo, ir, resolver } from './lib/ruteo.js';
 
@@ -87,6 +87,11 @@ ruta('#/admin/cargos', vistaAdminCargos, { rol: 'admin' });
 ruta('#/admin/pares', vistaAdminPares, { rol: 'admin' });
 ruta('#/admin/auditoria', vistaAdminAuditoria, { rol: 'admin' });
 ruta('#/admin/ronda', vistaAdminRonda, { rol: 'admin' });
+// Un enlace viejo o mal escrito llega acá: con título y salida, no una línea suelta.
+ruta('#/404', () => `
+  <div class="page-header"><h1 class="page-header__title">Esta página no existe</h1></div>
+  ${emptyState({ title: 'El enlace está mal o la página cambió de lugar', body: 'Vuelve al inicio para seguir desde ahí.', glyph: 'help' })}
+  <p><a class="btn btn--secondary" href="#/">Ir al inicio</a></p>`);
 
 /* --------------------------------------------------------------- navegación */
 
@@ -98,8 +103,15 @@ ruta('#/admin/ronda', vistaAdminRonda, { rol: 'admin' });
 function enlacesDe(s) {
   const enlaces = [{ href: '#/', label: 'Inicio' }];
   const roles = s.persona.roles;
-  if (s.persona.cargo_id) enlaces.push({ href: '#/mi-desarrollo', label: 'Mi desarrollo' });
-  if (roles.includes('lider')) enlaces.push({ href: '#/equipo', label: 'Mi equipo' });
+  const yo = s.persona.id;
+  if (s.persona.cargo_id) {
+    enlaces.push({ href: '#/mi-desarrollo', label: 'Mi desarrollo', prefijo: ['#/autoevaluacion', `#/plan/${yo}`] });
+  }
+  // Las pantallas de una persona del equipo (perfil, evaluación, plan) son de
+  // «Mi equipo»: sin esto, ningún enlace del menú decía dónde se estaba.
+  if (roles.includes('lider')) {
+    enlaces.push({ href: '#/equipo', label: 'Mi equipo', prefijo: ['#/persona/', '#/evaluar/', '#/plan/'], excepto: [`#/plan/${yo}`, `#/persona/${yo}`] });
+  }
   if (roles.includes('admin')) {
     enlaces.push({ href: '#/organizacion', label: 'Organización' });
     enlaces.push({ href: '#/admin/personas', label: 'Administración', prefijo: ['#/admin/'] });
@@ -110,6 +122,7 @@ function enlacesDe(s) {
 /** 'page' si es exactamente esta pantalla; 'true' si es una de su sección. */
 function actual(l, hash) {
   if (hash === l.href) return 'page';
+  if ((l.excepto ?? []).includes(hash)) return null;
   return (l.prefijo ?? []).some((p) => hash.startsWith(p)) ? 'true' : null;
 }
 
@@ -135,13 +148,20 @@ function pintarCarcasa() {
     <span class="usuario__nombre">
       ${esc(s.persona.nombre)}
       <span class="usuario__rol">${esc(
-        s.persona.roles.map((r) => ROLES[r]?.label).filter(Boolean).join(' · '))}${
-        abiertas ? ` · ${abiertas} pendiente${abiertas === 1 ? '' : 's'}` : ''}</span>
+        s.persona.roles.map((r) => ROLES[r]?.label).filter(Boolean).join(' · '))}</span>
     </span>
+    ${abiertas ? `<a class="badge badge--warning usuario__pendientes" href="#/">${abiertas} pendiente${abiertas === 1 ? '' : 's'}</a>` : ''}
     <button type="button" class="btn btn--ghost btn--sm" id="btn-salir">Salir</button>`;
 
   el('btn-salir').addEventListener('click', async (ev) => {
-    await withBusy(ev.currentTarget, () => salir());
+    const boton = ev.currentTarget;
+    const n = borradoresSinEnviar();
+    if (n && !(await confirmar({
+      titulo: n === 1 ? 'Tienes una evaluación sin enviar' : `Tienes ${n} evaluaciones sin enviar`,
+      cuerpo: 'Al salir se borran las respuestas que no enviaste de este navegador. Si quieres seguir después, cierra la pestaña en lugar de salir.',
+      aceptar: 'Salir y borrar', cancelar: 'Seguir evaluando', peligro: true,
+    }))) return;
+    await withBusy(boton, () => salir(), { label: 'Saliendo…' });
     ir('#/entrar');
     pintarCarcasa();
   });
@@ -183,7 +203,7 @@ document.addEventListener('cdp:sesion-terminada', () => {
   }
   descartarSesion();
   pintarCarcasa();
-  toast('Tu sesión terminó. Vuelve a entrar con tu correo; lo que no alcanzaste a guardar se perdió.', 'info');
+  try { sessionStorage.setItem('cdp.sesion-vencida', '1'); } catch { /* el ingreso no lo menciona */ }
   ir('#/entrar');
   setTimeout(() => { terminando = false; }, 1000);
 });

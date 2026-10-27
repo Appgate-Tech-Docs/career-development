@@ -179,7 +179,7 @@
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Layout */
-  --layout-max:        72rem;   /* 1152px — wide enough for 6-column tables */
+  --layout-max:        90rem;   /* 1440px — tablas y gráficas usan el ancho de la pantalla */
   --layout-max-narrow: 40rem;   /*  640px — forms, prose, auth screens      */
   --layout-gutter:     var(--space-sm);
 

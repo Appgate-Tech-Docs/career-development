@@ -663,7 +663,7 @@ function inicio(ctx: Contexto, u: Usuario): Respuesta {
 
   const planes = ctx.filas('Planes')
     .filter((x) => !verdadero(x.oculto) && (admin || completas.has(texto(x.persona_id))))
-    .map((x) => salidaPlan(x));
+    .map((x) => salidaPlan(ctx, x));
 
   const equiposVistos = new Set<string>(personasSalida.map((p) => texto(p.equipo_id)).filter(Boolean));
   equiposQueLidera(ctx, u.id).forEach((id) => equiposVistos.add(id));
@@ -723,11 +723,13 @@ function inicio(ctx: Contexto, u: Usuario): Respuesta {
   return respuesta;
 }
 
-function salidaPlan(x: Fila): { [k: string]: unknown } {
+/** El nombre del autor va resuelto: quien lee su plan no siempre recibe a su líder entre las personas. */
+function salidaPlan(ctx: Contexto, x: Fila): { [k: string]: unknown } {
+  const autor = ctx.filas('Personas').find((p) => texto(p.id) === texto(x.autor_id));
   return {
     id: texto(x.id), persona_id: texto(x.persona_id), titulo: texto(x.titulo), objetivo: texto(x.objetivo),
     propuesta: texto(x.propuesta), skill_ids: texto(x.skill_ids).split(',').map((s) => s.trim()).filter(Boolean),
-    autor_id: texto(x.autor_id), ts_creado: Number(x.ts_creado) || null, ts_editado: Number(x.ts_editado) || null,
+    autor_id: texto(x.autor_id), autor: autor ? texto(autor.nombre) : '', ts_creado: Number(x.ts_creado) || null, ts_editado: Number(x.ts_editado) || null,
   };
 }
 
@@ -833,7 +835,7 @@ function guardarPlan(ctx: Contexto, u: Usuario, d: { [k: string]: unknown }): Re
     }
     f.ts_editado = ctx.ahora;
     ctx.marcar('Planes', f);
-    return { ok: true, plan: salidaPlan(f) };
+    return { ok: true, plan: salidaPlan(ctx, f) };
   }
   const nuevo = ctx.agregar('Planes', {
     id: `plan-${ctx.ahora.toString(36)}-${ctx.entropia.slice(0, 6) || '0'}`, persona_id: personaId, ...valores,
@@ -843,7 +845,7 @@ function guardarPlan(ctx: Contexto, u: Usuario, d: { [k: string]: unknown }): Re
     accion: 'plan.crear', entidad: 'plan', entidad_id: texto(nuevo.id), entidad_nombre: `${titulo} · ${texto(p.nombre)}`,
     equipo_id: texto(p.equipo_id),
   });
-  return { ok: true, plan: salidaPlan(nuevo) };
+  return { ok: true, plan: salidaPlan(ctx, nuevo) };
 }
 
 function borrarPlan(ctx: Contexto, u: Usuario, d: { [k: string]: unknown }): Respuesta {

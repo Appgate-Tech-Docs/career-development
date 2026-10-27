@@ -11,12 +11,14 @@
    ========================================================================= */
 
 import {
-  esc, gapHtml, avisosHtml, emptyState, sincronizarScrollables,
+  esc, gapHtml, avisosHtml, emptyState, sincronizarScrollables, estadoTareaHtml,
 } from '../lib/ui.js';
 import {
   equipoExtendido, perfil, cargo, avisosEquipo,
   distribucionPorNivel, brechasPorHabilidad, matrizDeGrupo,
+  estadoEvaluacion, esInterino, ronda,
 } from '../lib/almacen.js';
+import { preguntasDe } from './evaluar.js';
 import {
   graficaDistribucion, graficaBrechas, graficaMatriz, conectarGraficas,
 } from '../lib/graficas.js';
@@ -27,9 +29,8 @@ export function vistaEquipo({ sesion }) {
   if (!miembros.length) {
     return {
       html: emptyState({
-        title: 'No tienes reportes directos',
-        body: 'Este tablero aparece cuando alguien reporta a ti. Desde el menú de '
-            + 'usuario puedes entrar como otra persona para verlo.',
+        title: 'No tienes personas a cargo en esta ronda',
+        body: 'Si deberías tenerlas, avisa al equipo de Personas para que lo corrija.',
         glyph: 'users',
       }),
     };
@@ -43,13 +44,13 @@ export function vistaEquipo({ sesion }) {
       <div class="page-header">
         <h1 class="page-header__title">Tu equipo</h1>
         <p class="page-header__lede">
-          Estado de cada persona frente a las funciones y habilidades que su cargo
-          espera. «Ver detalle» abre su matriz de talento y el simulador.
+          Estado de cada persona frente a lo que su cargo espera, y cuánto te falta
+          por evaluar. El nombre abre su detalle.
         </p>
       </div>
 
-      ${bloqueAvisos(avisos)}
       ${bloqueResumen(perfiles)}
+      ${bloqueAvisos(avisos)}
       ${bloquePersonas(perfiles)}
       ${bloqueMatriz(perfiles)}
       ${bloqueDistribucionYBrechas(perfiles)}
@@ -66,16 +67,14 @@ export function vistaEquipo({ sesion }) {
 function bloqueAvisos(avisos) {
   if (!avisos.length) return '';
   return `
-    <section class="section" aria-labelledby="t-avisos">
-      <div class="section__head">
-        <h2 class="section__title" id="t-avisos">Antes de leer los números</h2>
-      </div>
-      <p class="section__note">
-        Cosas que afectan cómo interpretar los resultados. No son problemas de las
-        personas: son límites del cómputo.
-      </p>
+    <details class="avisos-plegados">
+      <summary>
+        <span class="badge badge--warning">${avisos.length}</span>
+        ${avisos.length === 1 ? 'Un aviso' : `${avisos.length} avisos`} sobre cómo leer los números:
+        datos parciales o niveles en el borde. Los resultados son válidos, pero no definitivos.
+      </summary>
       ${avisosHtml(avisos)}
-    </section>`;
+    </details>`;
 }
 
 /* ---------------------------------------------------------------- resumen */
@@ -84,14 +83,16 @@ function bloqueResumen(perfiles) {
   const conRef = perfiles.filter((x) => x.pf.cumplimiento);
   const enNivel = conRef.filter((x) => x.pf.cumplimiento.cumple === x.pf.cumplimiento.total).length;
   const conBrecha = perfiles.filter((x) => x.pf.prioridades.length).length;
+  const mias = perfiles.filter((x) => x.persona.cargo_id);
+  const enviadas = mias.filter((x) => estadoEvaluacion(x.persona.id, 'Leader').estado === 'enviada').length;
 
   return `
     <section class="section" aria-labelledby="t-res">
       <div class="section__head"><h2 class="section__title" id="t-res">El equipo en conjunto</h2></div>
       <div class="kpi-grid">
-        <div class="kpi">
-          <span class="kpi__value">${perfiles.length}</span>
-          <span class="kpi__label">Personas en el equipo extendido</span>
+        <div class="kpi${enviadas < mias.length ? ' kpi--alerta' : ''}">
+          <span class="kpi__value">${enviadas}/${mias.length}</span>
+          <span class="kpi__label">Evaluaciones tuyas enviadas</span>
         </div>
         <div class="kpi">
           <span class="kpi__value">${enNivel}/${conRef.length}</span>
@@ -173,12 +174,11 @@ function bloquePersonas(perfiles) {
           <thead>
             <tr>
               <th scope="col">Persona</th>
-              <th scope="col">Cargo</th>
-              <th scope="col">Total</th>
+              <th scope="col">Nivel</th>
               <th scope="col">En su nivel</th>
               <th scope="col">Brechas</th>
-              <th scope="col">Estado</th>
-              <th scope="col"><span class="sr-only">Acción</span></th>
+              <th scope="col">Qué falta</th>
+              <th scope="col">Tu evaluación</th>
             </tr>
           </thead>
           <tbody>
@@ -189,49 +189,69 @@ function bloquePersonas(perfiles) {
     </section>`;
 }
 
-const faltante = (pf) => (pf.cumplimiento
-  ? pf.cumplimiento.total - pf.cumplimiento.cumple : -1);
+const faltante = (pf) => (pf.evaluadas === 0 ? Infinity
+  : pf.cumplimiento ? pf.cumplimiento.total - pf.cumplimiento.cumple : -1);
 
-function fila({ persona: p, directo, pf }) {
+const ROL_LEGIBLE = { Employee: 'autoevaluación', Leader: 'tu evaluación', Peer: 'pares' };
+
+function fila({ persona: p, pf }) {
   const c = pf.cumplimiento;
   const todo = c && c.cumple === c.total;
+  const sinDatos = pf.evaluadas === 0;
   const criticas = pf.prioridades.filter((h) => h.severidad === 'brecha-critica').length;
+  const est = estadoEvaluacion(p.id, 'Leader');
+  const abierta = Boolean(ronda()?.abierta);
+  // «Qué falta» en palabras: quién no ha evaluado y si el nivel está en el borde.
+  const faltan = pf.evaluadores_faltantes.map((r) => ROL_LEGIBLE[r] ?? r);
+  const falta = [
+    faltan.length ? `Falta: ${faltan.join(', ')}` : '',
+    pf.cerca_de_umbral && pf.banda_vecina ? bordeDe(pf) : '',
+  ].filter(Boolean);
 
   return `
     <tr class="table__row${criticas ? ' table__row--atencion' : ''}">
+      <th scope="row" class="table__rowhead">
+        <a href="#/persona/${esc(p.id)}">${esc(p.nombre)}</a>
+        <span class="text-sm text-muted linea-aparte">${esc(cargo(p.cargo_id)?.nombre ?? '—')}</span>
+        ${esInterino(p) ? '<span class="badge badge--neutral">Interino</span>' : ''}
+      </th>
       <td>
-        <b>${esc(p.nombre)}</b>
-        ${!directo ? '<span class="badge badge--neutral">Nivel inferior</span>' : ''}
+        ${sinDatos ? '<span class="text-muted">—</span>' : `
+          <b>${esc(pf.nivel_es ?? '—')}</b>
+          <span class="text-sm text-muted linea-aparte numeric">${pf.perfil_total === null ? '' : `${pf.perfil_total.toFixed(1)} de 100`}</span>`}
       </td>
-      <td class="text-xs text-muted">${esc(cargo(p.cargo_id)?.nombre ?? '—')}</td>
       <td>
-        <span class="numeric">${pf.perfil_total === null ? '—' : pf.perfil_total.toFixed(1)}</span>
-        <span class="text-xs text-muted linea-aparte">${esc(pf.nivel_es ?? '')}</span>
-      </td>
-      <td>
-        ${c ? `<span class="numeric ${todo ? 'texto-exito' : 'text-muted'}">${c.cumple}/${c.total}</span>`
+        ${c ? `<span class="numeric ${todo ? 'texto-exito' : ''}">${c.cumple}/${c.total}</span>`
           : '<span class="text-muted">—</span>'}
       </td>
       <td>
-        ${pf.prioridades.length
-          ? `<span class="numeric">${pf.prioridades.length}</span>${
-              criticas ? `<span class="text-xs linea-aparte texto-peligro">${
-                criticas} ${criticas === 1 ? 'crítica' : 'críticas'}</span>` : ''}`
-          : gapHtml('cumple', {})}
+        ${sinDatos ? gapHtml('sin-evaluar', {})
+          : pf.prioridades.length
+            ? `<span class="numeric">${pf.prioridades.length}</span>${
+                criticas ? `<span class="text-sm linea-aparte texto-peligro">${
+                  criticas} ${criticas === 1 ? 'crítica' : 'críticas'}</span>` : ''}`
+            : pf.sin_evaluar ? `<span class="text-sm">Ninguna aún · faltan ${pf.sin_evaluar}</span>` : gapHtml('cumple', {})}
       </td>
+      <td class="text-sm">${falta.length ? falta.map(esc).join('<br>') : '<span class="text-muted">Nada</span>'}</td>
       <td>
-        ${pf.cerca_de_umbral
-          ? '<span class="badge badge--warning">Nivel inestable</span>' : ''}
-        ${pf.evaluadores_faltantes.length
-          ? '<span class="badge badge--warning">Incompleta</span>' : ''}
-        ${!pf.cerca_de_umbral && !pf.evaluadores_faltantes.length
-          ? '<span class="text-xs text-muted">Completa</span>' : ''}
-      </td>
-      <td>
-        <a class="btn btn--secondary btn--sm" href="#/persona/${esc(p.id)}">
-          Ver detalle
-        </a>
+        <span class="tabla-tarea">
+          ${estadoTareaHtml(est, preguntasDe(p.id).length)}
+          ${abierta ? `<a class="btn ${est.estado === 'enviada' ? 'btn--ghost' : 'btn--secondary'} btn--sm" href="#/evaluar/${esc(p.id)}">${
+            est.estado === 'enviada' ? 'Revisar' : est.estado === 'borrador' ? 'Continuar' : 'Evaluar'}<span class="sr-only"> a ${esc(p.nombre)}</span></a>` : ''}
+        </span>
       </td>
     </tr>`;
 }
 
+
+const ORDEN_NIVEL = ['Básico', 'Intermedio', 'Avanzado', 'Experto'];
+
+/** Cerca de un corte, dicho con dirección: no es lo mismo estar a punto de subir que de bajar. */
+function bordeDe(pf) {
+  const m = Number(pf.margen_banda);
+  if (m < 0.05) return `Justo en el borde con ${pf.banda_vecina}`;
+  const baja = ORDEN_NIVEL.indexOf(pf.banda_vecina) < ORDEN_NIVEL.indexOf(pf.nivel_es);
+  return baja
+    ? `${m.toFixed(1)} pts sobre el corte de ${pf.banda_vecina}`
+    : `A ${m.toFixed(1)} pts de subir a ${pf.banda_vecina}`;
+}

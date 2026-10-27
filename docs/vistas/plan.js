@@ -15,7 +15,7 @@
    ========================================================================= */
 
 import {
-  esc, icon, toast, emptyState, setFieldError, clearFieldErrors, withBusy,
+  esc, icon, toast, emptyState, setFieldError, clearFieldErrors, withBusy, confirmar,
 } from '../lib/ui.js';
 import {
   persona, cargo, perfil, planesDe, guardarPlan, borrarPlan,
@@ -28,7 +28,9 @@ export function vistaPlan({ sesion, params }) {
 
   const propio = p.id === sesion.persona.id;
   const esSuLider = rolDeEvaluacion(sesion.persona.id, p.id) === 'Leader';
-  if (!propio && !esSuLider) {
+  // La administración los lee (el servidor ya se los entrega); no los edita.
+  const admin = sesion.persona.roles.includes('admin');
+  if (!propio && !esSuLider && !admin) {
     return {
       html: emptyState({
         title: `No puedes ver los planes de ${p.nombre}`,
@@ -53,14 +55,12 @@ export function vistaPlan({ sesion, params }) {
   return {
     html: `
       <div class="page-header">
-        <a class="task-link" href="${propio ? '#/mi-desarrollo' : `#/persona/${esc(p.id)}`}"
-           style="padding-inline:0;margin-bottom:var(--space-2xs)">
-          ${icon('chevronRight', { className: 'rotate-180' })} Volver
+        <a class="task-link volver" href="${propio ? '#/mi-desarrollo' : `#/persona/${esc(p.id)}`}">
+          ${icon('chevronRight', { className: 'rotate-180' })} ${propio
+            ? 'Volver a Mi desarrollo' : `Volver al perfil de ${esc(p.nombre.split(' ')[0])}`}
         </a>
-        <h1 class="page-header__title">Plan de desarrollo</h1>
-        <p class="page-header__lede">
-          ${esc(p.nombre)} · ${esc(cargo(p.cargo_id)?.nombre ?? '')}
-        </p>
+        <h1 class="page-header__title">${propio ? 'Mi plan de desarrollo' : `Plan de desarrollo de ${esc(p.nombre)}`}</h1>
+        <p class="page-header__lede">${esc(cargo(p.cargo_id)?.nombre ?? '')}</p>
       </div>
       <div id="zona-plan">${render()}</div>
     `,
@@ -101,7 +101,7 @@ export function vistaPlan({ sesion, params }) {
               objetivo: objetivo.value.trim(),
               propuesta: propuesta.value.trim(),
               skillIds: [...zona.querySelectorAll('[data-skill]:checked')].map((c) => c.dataset.skill),
-            }));
+            }), { label: 'Guardando…' });
           } catch (e) {
             toast(`No se guardó el plan: ${e.message}`, 'error');
             return;
@@ -131,8 +131,14 @@ export function vistaPlan({ sesion, params }) {
         });
         zona.querySelectorAll('[data-borrar]').forEach((b) => {
           b.addEventListener('click', async () => {
+            const pl = planesDe(p.id).find((x) => x.id === b.dataset.borrar);
+            if (!(await confirmar({
+              titulo: `¿Eliminar el plan «${pl?.titulo ?? ''}»?`,
+              cuerpo: `${p.nombre.split(' ')[0]} dejará de verlo. El texto queda en la auditoría, pero no se puede recuperar desde aquí.`,
+              aceptar: 'Eliminar el plan', peligro: true,
+            }))) return;
             try {
-              await withBusy(b, () => borrarPlan(b.dataset.borrar));
+              await withBusy(b, () => borrarPlan(b.dataset.borrar), { label: 'Eliminando…' });
             } catch (e) {
               toast(`No se eliminó el plan: ${e.message}`, 'error');
               return;
@@ -160,14 +166,11 @@ export function vistaPlan({ sesion, params }) {
 
 function bloqueAviso() {
   return `
-    <div class="callout" style="margin-bottom:var(--space-md)">
+    <div class="callout plan__aviso">
       ${icon('info')}
       <span>
-        <strong>El seguimiento del plan no ocurre en este portal.</strong>
-        El portal recolecta la información y evalúa; el plan se escribe acá para tener
-        la conversación con el dato a la vista, pero las fechas, los responsables y el
-        avance se manejan en el proceso de cada equipo. Lo que sale de acá es el
-        documento: imprímelo o descárgalo y llévalo a donde el seguimiento ocurra.
+        <strong>El seguimiento del plan no ocurre en este portal:</strong> imprímelo o
+        descárgalo y llévalo a donde tu equipo hace el seguimiento.
       </span>
     </div>`;
 }
@@ -218,8 +221,8 @@ function bloqueLista(p, puedeEditar) {
             <h3 class="plan__title">${esc(pl.titulo)}</h3>
             ${puedeEditar ? `
               <div class="btn-group">
-                <button type="button" class="btn btn--ghost btn--sm" data-editar="${esc(pl.id)}">Editar</button>
-                <button type="button" class="btn btn--ghost btn--sm" data-borrar="${esc(pl.id)}">Eliminar</button>
+                <button type="button" class="btn btn--ghost btn--sm" data-editar="${esc(pl.id)}">Editar<span class="sr-only"> «${esc(pl.titulo)}»</span></button>
+                <button type="button" class="btn btn--ghost btn--sm texto-peligro" data-borrar="${esc(pl.id)}">Eliminar<span class="sr-only"> «${esc(pl.titulo)}»</span></button>
               </div>` : ''}
           </div>
           ${pl.objetivo ? `
@@ -231,7 +234,7 @@ function bloqueLista(p, puedeEditar) {
             <div class="plan__chips" style="margin-top:var(--space-2xs)">
               ${pl.skill_ids.map((sid) => chipHabilidad(p.id, sid)).join('')}
             </div>` : ''}
-          <p class="plan__meta">Propuesto por ${esc(pl.autor)}</p>
+          <p class="plan__meta">Propuesto por ${esc(autorDe(pl))}</p>
         </div>`).join('')}
     </section>`;
 }
@@ -397,7 +400,7 @@ function bloqueImprimible(p, pf) {
             return h ? `<li>${esc(h.nombre)} — hoy ${esc(h.nivel_label ?? 'sin evaluar')}, se espera ${
               esc(h.nivel_esperado_label)}</li>` : '';
           }).join('')}</ul>` : ''}
-        <p><small>Propuesto por ${esc(pl.autor)}</small></p>`).join('<hr>')}
+        <p><small>Propuesto por ${esc(autorDe(pl))}</small></p>`).join('<hr>')}
     </div>`;
 }
 
@@ -435,7 +438,7 @@ function descargarTexto(p, pf) {
       });
       lineas.push('');
     }
-    lineas.push(`Propuesto por ${pl.autor}`, '');
+    lineas.push(`Propuesto por ${autorDe(pl)}`, '');
     if (i < planes.length - 1) lineas.push('');
   });
 
@@ -454,3 +457,8 @@ function descargarTexto(p, pf) {
 }
 
 const etiqueta = (t) => (CATEGORIAS.find((c) => c.key === t)?.label ?? t ?? '');
+
+/** El servidor manda el id del autor; el nombre sale de las personas visibles. */
+function autorDe(pl) {
+  return pl.autor || persona(pl.autor_id)?.nombre || 'su líder';
+}

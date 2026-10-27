@@ -36,6 +36,8 @@ function destinoTrasEntrar() {
 export function vistaEntrar() {
   let correo = recordado();
   const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+  let vencida = false;
+  try { vencida = sessionStorage.getItem('cdp.sesion-vencida') === '1'; sessionStorage.removeItem('cdp.sesion-vencida'); } catch { /* sin aviso */ }
 
   const pasoCorreo = () => `
     <form class="entrar__form" id="f-correo" novalidate>
@@ -59,7 +61,7 @@ export function vistaEntrar() {
                aria-describedby="codigo-ayuda">
         <p class="field__hint" id="codigo-ayuda">
           Si <b>${esc(correo)}</b> está registrado, el código ya va en camino.
-          Vale unos minutos y sirve una sola vez.
+          Vale 10 minutos y sirve una sola vez.
         </p>
         <p class="field__error" id="codigo-error" role="alert"></p>
       </div>
@@ -69,6 +71,8 @@ export function vistaEntrar() {
         <button type="button" class="btn btn--ghost btn--sm" id="otro-correo">Usar otro correo</button>
       </div>
       <p class="field__hint" id="reenviar-espera" aria-live="off"></p>
+      <p class="field__hint">¿No llega? Revisa la carpeta de correo no deseado. Si sigue sin llegar,
+        avisa al equipo de Personas.</p>
       ${local ? `
         <p class="callout callout--warning entrar__dev">${icon('info')}
           <span>Servidor local: el código aparece en la consola de <code>npm run local</code> y en <code>/dev/buzon</code>.</span>
@@ -82,6 +86,11 @@ export function vistaEntrar() {
           <h1 class="page-header__title">Entrar</h1>
           <p class="page-header__lede">Evaluación por cargo y planes de desarrollo.</p>
         </div>
+        ${vencida ? `
+          <p class="callout entrar__aviso">${icon('info')}
+            <span>Tu sesión terminó por tiempo. Vuelve a entrar y te llevamos a donde estabas:
+            las respuestas que no enviaste siguen guardadas en este navegador.</span>
+          </p>` : ''}
         <div class="card" id="paso">${pasoCorreo()}</div>
         <p class="sr-only" role="status" id="entrar-estado"></p>
       </div>

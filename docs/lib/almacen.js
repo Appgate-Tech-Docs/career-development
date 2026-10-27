@@ -370,6 +370,10 @@ export function perfil(personaId, { ajustes = null } = {}) {
     cerca_de_umbral: Boolean(cerca?.cerca),
     categorias_faltantes: categoriasFaltantes,
     evaluadores_faltantes: rolesAusentes(habilidades),
+    // Sin estas dos cifras, «sin brechas» no distingue «todo en nivel» de
+    // «nadie evaluó todavía»: al abrir cada ronda todos parecían en nivel.
+    evaluadas: evaluadas.length,
+    sin_evaluar: habilidades.length - evaluadas.length,
   };
 }
 
@@ -504,6 +508,41 @@ export const reportesDirectos = (liderId) => (liderId === datos?.usuarioId
  * cambia y debe ver también el equipo extendido, el cambio va en el servidor
  * (equiposQueLidera en servidor/motor.ts); esta función ya pinta lo que llegue.
  */
+/** True si quien está en sesión lidera a esta persona solo de forma interina. */
+export function esInterino(p) {
+  const e = equipo(p?.equipo_id);
+  return Boolean(e && e.lider_interino_id && e.lider_interino_id === datos?.usuarioId
+    && e.lider_id !== datos?.usuarioId);
+}
+
+/**
+ * Estado de una evaluación que le toca a quien está en sesión: 'enviada',
+ * 'borrador' (con cuántas respuestas lleva en este navegador) o 'pendiente'.
+ * El borrador vive en localStorage con la misma clave que arma el asistente.
+ */
+export function estadoEvaluacion(evaluadoId, rol) {
+  const enviada = (datos?.evalPorPersona.get(evaluadoId) ?? [])
+    .some((e) => e.rol === rol && (rol === 'Employee' || e.evaluador === 'yo'));
+  if (enviada) return { estado: 'enviada', respondidas: 0 };
+  const clave = ['cdp_draft', ronda()?.id ?? 'ronda', rol, rol === 'Peer' ? 'Interno' : '-',
+    datos?.usuarioId, evaluadoId].join('_');
+  let respondidas = 0;
+  try { respondidas = Object.keys(JSON.parse(localStorage.getItem(clave) || '{}')).length; } catch { /* sin almacenamiento */ }
+  return { estado: respondidas ? 'borrador' : 'pendiente', respondidas };
+}
+
+/** Cuántas evaluaciones hay sin enviar en este navegador (para avisar al salir). */
+export function borradoresSinEnviar() {
+  let n = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('cdp_draft') && localStorage.getItem(k) !== '{}') n += 1;
+    }
+  } catch { /* sin almacenamiento */ }
+  return n;
+}
+
 export function equipoExtendido(liderId) {
   return reportesDirectos(liderId).map((p) => ({ persona: p, nivel: 1, directo: true }));
 }
@@ -615,7 +654,9 @@ function tieneEvaluacion(evaluadoId, rol, mia = false) {
  */
 export function pendientes(personaId) {
   const p = persona(personaId);
-  if (!p) return [];
+  // Con la ronda cerrada no hay nada que hacer: listar tareas que llevan a
+  // «la ronda está cerrada» es mandar a la persona a un callejón.
+  if (!p || !ronda()?.abierta) return [];
   const tareas = [];
 
   if (p.cargo_id && !tieneEvaluacion(p.id, 'Employee')) {

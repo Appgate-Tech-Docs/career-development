@@ -22,7 +22,8 @@ import {
 } from '../lib/ui.js';
 import {
   perfil, persona, cargo, avisosEquipo, CATEGORIAS, NIVEL_ES, rolDeEvaluacion,
-  matrizDeGrupo, EJE_MATRIZ, numeroCuadrante,
+  matrizDeGrupo, EJE_MATRIZ, numeroCuadrante, planesDe, ronda, estadoEvaluacion,
+  reportesDirectos, esInterino,
 } from '../lib/almacen.js';
 import {
   graficaMiradas, graficaContraEsperado, graficaMatriz, conectarGraficas,
@@ -38,21 +39,52 @@ const PUNTAJE_DE_NIVEL = { Basic: 2, Intermediate: 3, Advanced: 4, Expert: 5 };
 export function vistaMiDesarrollo({ sesion }) {
   const pf = perfil(sesion.persona.id);
   if (!pf) return { html: sinCargo() };
-
-  return {
-    html: `
-      <div class="page-header">
-        <h1 class="page-header__title">Tu desarrollo</h1>
-        <p class="page-header__lede">
-          ${esc(pf.cargo?.nombre ?? '')} · Cómo te ves tú, cómo te ve tu líder y cómo
-          te ven tus pares, contra el nivel que tu cargo espera.
-        </p>
+  const yo = sesion.persona.id;
+  const auto = estadoEvaluacion(yo, 'Employee');
+  // Revisar la autoevaluación es una acción de la persona, no una tarea más:
+  // vive en la cabecera, donde se ve sin bajar.
+  const accionAuto = ronda()?.abierta
+    ? `<a class="btn ${auto.estado === 'enviada' ? 'btn--secondary' : 'btn--primary'}" href="#/autoevaluacion">${
+        auto.estado === 'enviada' ? 'Revisar mi autoevaluación'
+          : auto.estado === 'borrador' ? 'Continuar mi autoevaluación' : 'Hacer mi autoevaluación'}</a>`
+    : '';
+  const cabecera = `
+    <div class="page-header">
+      <div class="page-header--acciones">
+        <div>
+          <h1 class="page-header__title">Mi desarrollo</h1>
+          <p class="page-header__lede">
+            ${esc(pf.cargo?.nombre ?? '')} · Cómo te ves tú, cómo te ve tu líder y cómo
+            te ven tus pares, contra el nivel que tu cargo espera.
+          </p>
+        </div>
+        ${accionAuto ? `<div class="btn-group">${accionAuto}</div>` : ''}
       </div>
+    </div>`;
 
+  // Sin ninguna evaluación no hay nada que mostrar: un solo estado vacío que
+  // dice qué falta, en lugar de una página de gráficas vacías que felicita.
+  if (pf.evaluadas === 0) {
+    return {
+      html: `${cabecera}
+        ${emptyState({
+          title: 'Todavía no hay evaluaciones tuyas en esta ronda',
+          body: 'Tu resultado aparece cuando tú, tu líder o tus pares envíen su evaluación.',
+          glyph: 'clipboard',
+        })}
+        ${bloquePlan(yo)}`,
+    };
+  }
+
+  // Primero la respuesta (dónde estoy y qué me falta), después el porqué.
+  return {
+    html: `${cabecera}
       ${cabeceraEstado(pf)}
+      ${avisosDe(pf, { propio: true })}
+      ${bloquePrioridades(pf, { propio: true })}
+      ${bloquePlan(yo)}
       ${bloqueCategorias(pf)}
       ${bloqueMiradas(pf, { titulo: 'Cómo te ve cada evaluador' })}
-      ${bloquePrioridades(pf, { propio: true })}
       ${tablaEvaluadores(pf)}
     `,
     montado(raiz) {
@@ -76,47 +108,77 @@ export function vistaPersona({ sesion, params }) {
   const propio = p.id === sesion.persona.id;
   const admin = sesion.persona.roles.includes('admin');
   if (!esSuLider && !propio && !admin) return { html: sinPermiso(p) };
+  // La persona ve su propio resultado en Mi desarrollo, sin simulador.
+  if (propio && !admin) return vistaMiDesarrollo({ sesion });
 
   // Los ajustes del simulador viven acá, no en el almacén: son una pregunta que
   // se hace en pantalla, no un dato del sistema.
   const ajustes = {};
 
+  const nombreCorto = p.nombre.split(' ')[0];
   const render = () => {
     const pf = perfil(p.id, { ajustes: Object.keys(ajustes).length ? ajustes : null });
+    if (pf.evaluadas === 0) {
+      return emptyState({
+        title: `Todavía no hay evaluaciones de ${nombreCorto} en esta ronda`,
+        body: 'No se pueden calcular su puntaje ni sus brechas hasta que llegue la primera evaluación.',
+        glyph: 'clipboard',
+      });
+    }
     return `
-      ${avisosDe(pf)}
       ${cabeceraEstado(pf, { simulando: Object.keys(ajustes).length > 0 })}
-      ${bloqueCategorias(pf)}
+      ${avisosDe(pf)}
       ${bloquePrioridades(pf, { propio: false })}
+      ${bloqueCategorias(pf)}
       ${bloqueMatriz(pf)}
-      ${bloqueMiradas(pf, { titulo: `Cómo ven a ${p.nombre.split(' ')[0]} sus evaluadores` })}
+      ${bloqueMiradas(pf, { titulo: `Cómo ven a ${nombreCorto} sus evaluadores` })}
     `;
   };
 
+  // Las acciones van en la cabecera: es la pantalla donde se decide qué hacer
+  // con la persona, y abajo de todo quedaban a varias pantallas de distancia.
+  // La etiqueta dice el estado real: «Revisar» solo si ya se envió.
+  const estadoMio = esSuLider ? estadoEvaluacion(p.id, 'Leader') : null;
+  const accionEvaluar = esSuLider && ronda()?.abierta
+    ? `<a class="btn ${estadoMio.estado === 'enviada' ? 'btn--secondary' : 'btn--primary'}" href="#/evaluar/${esc(p.id)}">${
+        estadoMio.estado === 'enviada' ? 'Revisar mi evaluación'
+          : estadoMio.estado === 'borrador' ? 'Continuar mi evaluación' : `Evaluar a ${esc(nombreCorto)}`}</a>`
+    : '';
+  const planPrimario = !accionEvaluar || estadoMio.estado === 'enviada';
+  const accionPlan = (esSuLider || planesDe(p.id).length)
+    ? `<a class="btn ${planPrimario ? 'btn--primary' : 'btn--secondary'}" href="#/plan/${esc(p.id)}">Plan de desarrollo</a>`
+    : '';
+
+  // Anterior y siguiente: recorrer los reportes sin volver al equipo cada vez.
+  const companeros = esSuLider ? reportesDirectos(sesion.persona.id) : [];
+  const i = companeros.findIndex((x) => x.id === p.id);
+  const pager = companeros.length > 1 && i >= 0 ? `
+    <nav class="pager" aria-label="Personas de tu equipo">
+      ${i > 0 ? `<a class="task-link" href="#/persona/${esc(companeros[i - 1].id)}">${icon('chevronRight', { className: 'rotate-180' })}<span><span class="sr-only">Anterior: </span>${esc(companeros[i - 1].nombre)}</span></a>` : '<span></span>'}
+      <span class="pager__pos">${i + 1} de ${companeros.length}</span>
+      ${i < companeros.length - 1 ? `<a class="task-link pager__siguiente" href="#/persona/${esc(companeros[i + 1].id)}"><span><span class="sr-only">Siguiente: </span>${esc(companeros[i + 1].nombre)}</span>${icon('chevronRight')}</a>` : '<span></span>'}
+    </nav>` : '';
+
+  const pfBase = perfil(p.id);
   const html = `
     <div class="page-header">
       <a class="task-link volver" href="${esSuLider ? '#/equipo' : '#/organizacion'}">
-        ${icon('chevronRight', { className: 'rotate-180' })} ${esSuLider ? 'Volver al equipo' : 'Volver a la organización'}
+        ${icon('chevronRight', { className: 'rotate-180' })} ${esSuLider ? 'Volver a Mi equipo' : 'Volver a la organización'}
       </a>
-      <h1 class="page-header__title">${esc(p.nombre)}</h1>
-      <p class="page-header__lede">${esc(cargo(p.cargo_id)?.nombre ?? '')} · ${esc(p.area)}</p>
+      <div class="page-header--acciones">
+        <div>
+          <h1 class="page-header__title">${esc(p.nombre)}</h1>
+          <p class="page-header__lede">${esc(cargo(p.cargo_id)?.nombre ?? '')} · ${esc(p.area)}${
+            esInterino(p) ? ' · <span class="badge badge--neutral">La lideras como interina o interino</span>' : ''}</p>
+        </div>
+        ${accionEvaluar || accionPlan ? `<div class="btn-group">${accionEvaluar}${accionPlan}</div>` : ''}
+      </div>
+      ${pager}
     </div>
 
     <div id="zona-estado">${render()}</div>
-    ${bloqueSimulador(p)}
-
-    <section class="section" aria-labelledby="t-acciones">
-      <div class="section__head"><h2 class="section__title" id="t-acciones">Siguiente paso</h2></div>
-      <p class="section__note">
-        Lo único que sale de esta herramienta es un plan propuesto para llevarlo a
-        donde su seguimiento realmente ocurra.
-      </p>
-      <div class="btn-group">
-        <a class="btn btn--primary" href="#/plan/${esc(p.id)}">Plan de desarrollo</a>
-        ${rolDeEvaluacion(sesion.persona.id, p.id) === 'Leader'
-          ? `<a class="btn btn--secondary" href="#/evaluar/${esc(p.id)}">Revisar mi evaluación</a>` : ''}
-      </div>
-    </section>
+    ${pfBase.evaluadas ? tablaEvaluadores(pfBase, { lider: true }) : ''}
+    ${pfBase.evaluadas && esSuLider ? bloqueSimulador(p) : ''}
   `;
 
   return {
@@ -198,6 +260,8 @@ function cabeceraEstado(pf, { simulando = false } = {}) {
           cumplimiento: pf.cumplimiento,
           margen: pf.margen_banda,
           vecina: pf.banda_vecina,
+          evaluadas: pf.evaluadas,
+          sinEvaluar: pf.sin_evaluar,
         })}
       </div>
       ${simulando ? `
@@ -209,7 +273,7 @@ function cabeceraEstado(pf, { simulando = false } = {}) {
     </section>`;
 }
 
-function avisosDe(pf) {
+function avisosDe(pf, { propio = false } = {}) {
   // Sin el aviso de umbral: el bloque del puntaje, justo arriba, ya dice que el
   // nivel está en el borde. Repetido, era la misma advertencia dos veces en
   // doscientos píxeles. En el tablero del equipo sí va, porque ahí no está el
@@ -219,7 +283,7 @@ function avisosDe(pf) {
   return `
     <section class="section" aria-labelledby="t-avisos">
       <div class="section__head">
-        <h2 class="section__title" id="t-avisos">Antes de leer los números</h2>
+        <h2 class="section__title" id="t-avisos">${propio ? 'Tu resultado todavía es parcial' : 'Antes de leer los números'}</h2>
       </div>
       ${avisosHtml(avisos)}
     </section>`;
@@ -281,6 +345,18 @@ function bloqueMatriz(pf) {
 function bloquePrioridades(pf, { propio }) {
   const lista = pf.prioridades;
 
+  // Sin brechas pero con habilidades sin evaluar no es «todo en nivel».
+  if (!lista.length && pf.sin_evaluar) {
+    return `
+      <section class="section" aria-labelledby="t-prio">
+        <div class="section__head"><h2 class="section__title" id="t-prio">Brechas</h2></div>
+        <p class="section__note">
+          Ninguna de las habilidades evaluadas está por debajo de lo esperado, pero faltan
+          ${pf.sin_evaluar} por evaluar: las brechas pueden cambiar cuando lleguen.
+        </p>
+      </section>`;
+  }
+
   if (!lista.length) {
     return `
       <section class="section" aria-labelledby="t-prio">
@@ -309,26 +385,26 @@ function bloquePrioridades(pf, { propio }) {
         Habilidades por debajo del nivel que el cargo espera, de la más profunda a
         la más leve. Entre brechas iguales va primero la categoría que más pesa.
       </p>
-      <div class="dl-rows">
+      <div class="dl-rows dl-rows--brechas">
         ${lista.map((h) => `
           <div class="dl-row">
             <span class="dl-row__term">
               <b>${esc(h.nombre)}</b>
-              <span class="text-xs text-muted linea-aparte">${esc(etiquetaTipo(h.tipo))}</span>
+              <span class="text-sm text-muted linea-aparte">${esc(etiquetaTipo(h.tipo))}</span>
             </span>
             <span class="dl-row__values">
-              ${scoreHtml(h.promedio, { label: `Promedio en ${h.nombre}` })}
               ${gapHtml(h.severidad, { esperado: h.nivel_esperado_label, escalones: h.escalones })}
-              <span class="text-xs text-muted">
-                espera <b>${esc(h.nivel_esperado_label)}</b>, hoy <b>${esc(h.nivel_label ?? '—')}</b>
+              <span class="text-sm">
+                Hoy <b>${esc(h.nivel_label ?? '—')}</b>, el cargo espera <b>${esc(h.nivel_esperado_label)}</b>
               </span>
+              ${scoreHtml(h.promedio, { label: `Promedio en ${h.nombre}` })}
             </span>
           </div>`).join('')}
       </div>
     </section>`;
 }
 
-function tablaEvaluadores(pf) {
+function tablaEvaluadores(pf, { lider = false } = {}) {
   const filas = pf.habilidades;
   if (!filas.length) return '';
 
@@ -344,17 +420,18 @@ function tablaEvaluadores(pf) {
       <div class="table-wrap table-wrap--sticky">
         <table class="table">
           <caption class="sr-only">
-            Cada habilidad de tu cargo con el puntaje de cada evaluador, tu promedio,
-            el nivel esperado y la brecha.
+            Cada habilidad del cargo con el puntaje de cada evaluador, de 1 a 5, el
+            promedio, el nivel de hoy, el esperado y la brecha.
           </caption>
           <thead>
             <tr>
               <th scope="col">Habilidad</th>
               <th scope="col">Categoría</th>
-              <th scope="col">Tú</th>
-              <th scope="col">Líder</th>
-              <th scope="col">Pares</th>
-              <th scope="col">Promedio</th>
+              <th scope="col" class="table__cell--numeric">${lider ? 'Autoevaluación' : 'Tú'}</th>
+              <th scope="col" class="table__cell--numeric">${lider ? 'Tú (líder)' : 'Líder'}</th>
+              <th scope="col" class="table__cell--numeric">Pares</th>
+              <th scope="col">Promedio (1 a 5)</th>
+              <th scope="col">Hoy</th>
               <th scope="col">Esperado</th>
               <th scope="col">Brecha</th>
             </tr>
@@ -376,26 +453,26 @@ function filaHabilidad(h, i) {
       <td>
         <div>${esc(h.nombre)}</div>
         <div class="insignias">
-          ${h.nivel_label ? `<span class="badge badge--info">${esc(h.nivel_label)}</span>` : ''}
           ${!h.completo && h.evaluadores_faltantes.length
             ? '<span class="badge badge--warning">Parcial</span>' : ''}
           ${tieneDetalle ? `
             <button type="button" class="btn btn--ghost btn--sm"
-                    aria-expanded="false" aria-controls="${id}">Qué significa</button>` : ''}
+                    aria-expanded="false" aria-controls="${id}">Qué es «${esc(h.nivel_label)}»<span class="sr-only"> en ${esc(h.nombre)}</span></button>` : ''}
         </div>
       </td>
-      <td class="text-xs text-muted">${esc(etiquetaTipo(h.tipo))}</td>
-      <td data-numeric>${fmt(h.puntajes.employee)}</td>
-      <td data-numeric>${fmt(h.puntajes.leader)}</td>
-      <td data-numeric>${fmt(h.puntajes.peer)}</td>
+      <td class="text-sm">${esc(etiquetaTipo(h.tipo))}</td>
+      <td data-numeric class="table__cell--numeric">${fmt(h.puntajes.employee)}</td>
+      <td data-numeric class="table__cell--numeric">${fmt(h.puntajes.leader)}</td>
+      <td data-numeric class="table__cell--numeric">${fmt(h.puntajes.peer)}</td>
       <td>${scoreHtml(h.promedio, { label: `Promedio en ${h.nombre}` })}</td>
-      <td class="text-xs">${esc(h.nivel_esperado_label ?? '—')}</td>
+      <td class="text-sm">${esc(h.nivel_label ?? '—')}</td>
+      <td class="text-sm">${esc(h.nivel_esperado_label ?? '—')}</td>
       <td>${gapHtml(h.severidad, { esperado: h.nivel_esperado_label, escalones: h.escalones })
-            || '<span class="text-xs text-muted">—</span>'}</td>
+            || '<span class="text-sm text-muted">—</span>'}</td>
     </tr>
     ${tieneDetalle ? `
       <tr class="table__detail" id="${id}" hidden>
-        <td colspan="8">
+        <td colspan="9">
           <div class="table__detail__inner">
             <p class="label-micro">Nivel ${esc(h.nivel_label)}</p>
             <p class="text-sm detalle-nivel">
@@ -448,9 +525,9 @@ function bloqueSimulador(p) {
             ${pf.habilidades.map((h, i) => `
               <tr class="table__row">
                 <td>${esc(h.nombre)}</td>
-                <td class="text-xs text-muted">${esc(etiquetaTipo(h.tipo))}</td>
-                <td class="text-xs">${esc(h.nivel_esperado_label ?? '—')}</td>
-                <td class="text-xs">${esc(h.nivel_label ?? 'sin evaluar')}</td>
+                <td class="text-sm">${esc(etiquetaTipo(h.tipo))}</td>
+                <td class="text-sm">${esc(h.nivel_esperado_label ?? '—')}</td>
+                <td class="text-sm">${esc(h.nivel_label ?? 'sin evaluar')}</td>
                 <td>
                   <label class="sr-only" for="sim-${i}">Simular nivel de ${esc(h.nombre)}</label>
                   <select class="select" id="sim-${i}" data-simular="${esc(h.skill_id)}">
@@ -463,6 +540,22 @@ function bloqueSimulador(p) {
           </tbody>
         </table>
       </div>
+    </section>`;
+}
+
+/* ------------------------------------------------------------------- plan */
+
+function bloquePlan(personaId) {
+  const n = planesDe(personaId).length;
+  return `
+    <section class="section" aria-labelledby="t-plan">
+      <div class="section__head">
+        <h2 class="section__title" id="t-plan">Tu plan de desarrollo</h2>
+        ${n ? `<a class="btn btn--primary btn--sm" href="#/plan/${esc(personaId)}">Ver mi plan</a>` : ''}
+      </div>
+      <p class="section__note">${n
+        ? `Tu líder propuso ${n === 1 ? 'un plan' : `${n} planes`} a partir de estas brechas.`
+        : 'Tu líder todavía no ha propuesto un plan. Cuando lo haga, aparecerá aquí.'}</p>
     </section>`;
 }
 

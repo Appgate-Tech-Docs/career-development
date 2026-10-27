@@ -23,7 +23,7 @@ import {
 } from './modelo.js';
 
 export const CATEGORIA_LABEL = {
-  Funcion: 'Función del perfil',
+  Funcion: 'Función del rol',
   'Hard Skill': 'Hard skill',
   'Soft Skill': 'Soft skill',
 };
@@ -539,7 +539,7 @@ export function startWizard(config) {
           skill_id: skill.id,
           puntaje: state.respuestas[skill.id].puntaje,
         })),
-      }));
+      }), { label: 'Enviando…' });
 
       clearDraft();
       state.step = 'done';
@@ -549,12 +549,18 @@ export function startWizard(config) {
       otros.forEach((b) => { b.disabled = false; });
       // The draft is intact, so retrying costs nothing — say so, because the
       // PoC's "Error al enviar" left people wondering if they had lost an hour.
-      toast(
-        error?.userMessage
-          ? `${error.userMessage} Tus respuestas siguen guardadas.`
-          : 'No se pudo enviar. Tus respuestas siguen guardadas; intenta de nuevo.',
-        'error',
-      );
+      // El motivo del servidor dice si reintentar sirve («la ronda se cerró» no
+      // se arregla reintentando). La sesión vencida ya la atiende la carcasa.
+      if (error?.codigo !== 'sesion') {
+        toast(
+          error?.codigo === 'ronda'
+            ? 'La ronda se cerró antes de enviar. Tus respuestas quedaron en este navegador; habla con el equipo de Personas.'
+            : error?.message
+              ? `No se pudo enviar: ${error.message} Tus respuestas siguen guardadas.`
+              : 'No se pudo enviar. Tus respuestas siguen guardadas; intenta de nuevo.',
+          'error',
+        );
+      }
       console.error(error);
     }
   }

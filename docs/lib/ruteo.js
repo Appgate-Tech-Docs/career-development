@@ -107,8 +107,11 @@ export async function resolver({ conservar = false, enfocar = null } = {}) {
     }
   } catch (error) {
     console.error(error);
-    contenedor.innerHTML = `<div class="callout callout--error" role="alert">
-      <span>No se pudo abrir esta pantalla. ${escapar(error.message ?? '')}</span></div>`;
+    contenedor.innerHTML = `
+      <div class="page-header"><h1 class="page-header__title">No se pudo abrir esta pantalla</h1></div>
+      <div class="callout callout--danger" role="alert">
+        <span>${escapar(error.message ?? 'Error inesperado.')} Recarga la página; si se repite, avisa al equipo de Personas.</span></div>
+      <p><a class="btn btn--secondary" href="#/">Ir al inicio</a></p>`;
   }
 
   if (conservar) {

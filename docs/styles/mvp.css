@@ -54,6 +54,17 @@
   color: var(--color-text-muted);
 }
 
+/* Los pendientes son un enlace al inicio, donde está la lista: una etiqueta
+   que se puede tocar, con área de toque completa. */
+.usuario__pendientes {
+  display: inline-flex; align-items: center;
+  min-height: 32px;
+  text-decoration: none;
+  transition: filter var(--duration-base) var(--ease-out);
+}
+.usuario__pendientes:hover { filter: brightness(0.95); text-decoration: underline; }
+.usuario__pendientes:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
+
 /* Bajo 48rem el encabezado ya envuelve; el borde vertical ahí queda a mitad de
    la nada, así que se convierte en un separador horizontal. */
 @media (max-width: 48rem) {
@@ -90,6 +101,7 @@
 }
 .texto-exito { color: var(--color-success-text); }
 .texto-peligro { color: var(--color-danger-text); }
+.texto-aviso { color: var(--color-warning-text); }
 .detalle-nivel { margin-top: var(--space-3xs); }
 .field--sin-margen { margin: 0; }
 
@@ -148,3 +160,5 @@
 
   @page { margin: 18mm 16mm; }
 }
+
+.plan__aviso { margin-bottom: var(--space-md); }
