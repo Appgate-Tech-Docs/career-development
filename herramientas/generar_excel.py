@@ -177,6 +177,31 @@ def construir(demo):
     if sin_autor:
         raise SystemExit(f"Evaluaciones con autor desconocido: {sorted(sin_autor)}")
 
+    # Dos planes de ejemplo, escritos por su líder sobre las brechas reales que
+    # tienen en estos datos. Sirven para probar que la pantalla de planes los
+    # muestra a la persona, a su líder y a la administración, y a nadie más.
+    planes = [
+        ("plan-ejemplo-lorena", "lorena-cespedes",
+         "Llevar la gestión de casos e incidentes a nivel avanzado",
+         "Que en dos trimestres resuelva sin escalar los casos de complejidad media y "
+         "lidere la comunicación de un incidente mayor de principio a fin.",
+         "1. Acompañar a Camilo en la guardia de incidentes mayores durante un mes.\n"
+         "2. Liderar la comunicación de un incidente con supervisión.\n"
+         "3. Revisión mensual de 5 casos cerrados con su líder.",
+         "f159,f149"),
+        ("plan-ejemplo-ivan", "ivan-restrepo",
+         "Consolidar el nivel intermedio en casos y colaboración",
+         "Que cierre los casos de primer nivel sin reabrirlos y documente cada solución "
+         "para el resto del equipo.",
+         "1. Curso interno de gestión de casos.\n"
+         "2. Documentar en la base de conocimiento cada caso que cierre durante un mes.\n"
+         "3. Participar en la revisión semanal de casos del equipo.",
+         "f159,f153"),
+    ]
+    for i, (pid, persona_id, titulo, objetivo, propuesta, skills) in enumerate(planes):
+        filas["Planes"].append([pid, persona_id, titulo, objetivo, propuesta, skills,
+                                "rocio-tamayo", TS_BASE + i * 60000, TS_BASE + i * 60000, False])
+
     return filas
 
 
