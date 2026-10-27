@@ -64,6 +64,7 @@ const ICON_PATHS = {
   calendar:     '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
   arrowDown:    '<path d="M12 5v14M19 12l-7 7-7-7"/>',
   arrowUp:      '<path d="M12 19V5M5 12l7-7 7 7"/>',
+  arrowRight:   '<path d="M5 12h14M12 5l7 7-7 7"/>',
   minus:        '<path d="M5 12h14"/>',
   help:         '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
   // Feather "info". El de alerta es el mismo círculo con la marca arriba: se

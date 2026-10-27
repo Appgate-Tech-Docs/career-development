@@ -58,6 +58,14 @@ function marcador(forma, clase) {
  * así que se omite y la figura toma el nombre de la sección. Sin él, el título
  * es un h3: vive dentro de una sección con su propio h2.
  */
+/** Título de un eje: qué se mide y hacia dónde crece. */
+function tituloEje(texto, { clase = '', flecha = 'arrowRight' } = {}) {
+  return `<span class="grafica__eje-titulo ${clase}" aria-hidden="true">${esc(texto)}${icon(flecha)}</span>`;
+}
+
+/** Los cortes de la matriz, iguales para potencial y desempeño. */
+const RANGO_MATRIZ = { 1: 'menos de 3', 2: '3 a 3,9', 3: '4 o más' };
+
 function contenedor({ id, titulo, etiquetadoPor = null, subtitulo, leyenda = '', cuerpo, aviso = '', tabla, marcas = true }) {
   const nombre = etiquetadoPor ?? `${id}-t`;
   return `
@@ -119,6 +127,10 @@ export function graficaMiradas(miradas, { id = 'g-miradas', titulo = 'Cómo te v
       <div class="puntos__eje">
         ${[1, 2, 3, 4, 5].map((t) => `<span style="left:${pct(t, 1, 5)}">${t}</span>`).join('')}
       </div>
+    </div>
+    <div class="puntos__fila" aria-hidden="true">
+      <span class="puntos__cat"></span>
+      ${tituloEje('Puntaje, de 1 a 5')}
     </div>`;
 
   const tabla = `
@@ -204,6 +216,7 @@ export function graficaContraEsperado(observado, esperado, { id = 'g-esperado', 
         <div class="bala__cortes">
           ${[40, 70, 90].map((t) => `<span style="left:${t}%">${t}</span>`).join('')}
         </div>
+        ${tituloEje('Puntaje, de 0 a 100')}
       </div>
     </div>`;
 
@@ -373,18 +386,18 @@ export function graficaMatriz(grupo, { id = 'g-matriz', resaltar = null, enlazar
   const cuerpo = `
     <div class="table-wrap matriz__scroll">
     <div class="matriz">
-      <span class="matriz__eje-y label-micro" aria-hidden="true">Potencial</span>
+      ${tituloEje('Potencial', { clase: 'matriz__eje-y', flecha: 'arrowRight' })}
       <table class="matriz__tabla">
         <caption class="sr-only">${esc(titulo)}: potencial en las filas (de alto a bajo), desempeño en las columnas (de bajo a alto).</caption>
         <thead>
-          <tr><td></td>${[1, 2, 3].map((x) => `<th scope="col"><span class="sr-only">Desempeño </span>${EJE_MATRIZ[x]}</th>`).join('')}</tr>
+          <tr><td class="matriz__esquina"></td>${[1, 2, 3].map((x) => `<th scope="col"><span class="sr-only">Desempeño </span>${EJE_MATRIZ[x]}<span class="matriz__rango">${RANGO_MATRIZ[x]}</span></th>`).join('')}</tr>
         </thead>
         <tbody>
           ${[3, 2, 1].map((y) => `
-            <tr><th scope="row"><span class="sr-only">Potencial </span>${EJE_MATRIZ[y]}</th>${[1, 2, 3].map((x) => celda(y, x)).join('')}</tr>`).join('')}
+            <tr><th scope="row"><span class="sr-only">Potencial </span>${EJE_MATRIZ[y]}<span class="matriz__rango">${RANGO_MATRIZ[y]}</span></th>${[1, 2, 3].map((x) => celda(y, x)).join('')}</tr>`).join('')}
         </tbody>
       </table>
-      <span class="matriz__eje-x label-micro" aria-hidden="true">Desempeño</span>
+      ${tituloEje('Desempeño', { clase: 'matriz__eje-x' })}
     </div>
     </div>`;
 

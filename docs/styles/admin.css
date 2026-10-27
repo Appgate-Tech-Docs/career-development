@@ -223,9 +223,10 @@ ul.audit { margin: 0; padding: 0; list-style: none; }
 .ronda-estado { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-sm); }
 .ronda-estado p { margin: 0; display: flex; align-items: center; gap: var(--space-2xs); flex-wrap: wrap; }
 
-/* Medidas de lectura, en lugar de max-width en línea. */
-.medida { max-width: 70ch; }
-.medida-corta { max-width: 44ch; }
+/* Antes limitaban el ancho de lectura; el texto ahora usa el ancho de su
+   contenedor como el resto del contenido. Se conservan las clases por las
+   vistas que las usan. */
+.medida, .medida-corta { max-width: none; }
 
 /* ---------------------------------------------------------------- teléfono */
 

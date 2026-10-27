@@ -90,7 +90,7 @@
 }
 .texto-exito { color: var(--color-success-text); }
 .texto-peligro { color: var(--color-danger-text); }
-.detalle-nivel { margin-top: var(--space-3xs); max-width: 70ch; }
+.detalle-nivel { margin-top: var(--space-3xs); }
 .field--sin-margen { margin: 0; }
 
 /* --------------------------------------------------------------------------

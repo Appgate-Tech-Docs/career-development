@@ -224,9 +224,9 @@ function bloqueLista(p, puedeEditar) {
           </div>
           ${pl.objetivo ? `
             <p class="label-micro">Objetivo</p>
-            <p class="text-sm" style="max-width:70ch">${esc(pl.objetivo)}</p>` : ''}
+            <p class="text-sm">${esc(pl.objetivo)}</p>` : ''}
           <p class="label-micro" style="margin-top:var(--space-2xs)">Plan propuesto</p>
-          <p class="text-sm" style="max-width:70ch;white-space:pre-wrap">${esc(pl.propuesta)}</p>
+          <p class="text-sm" style="white-space:pre-wrap">${esc(pl.propuesta)}</p>
           ${pl.skill_ids?.length ? `
             <div class="plan__chips" style="margin-top:var(--space-2xs)">
               ${pl.skill_ids.map((sid) => chipHabilidad(p.id, sid)).join('')}

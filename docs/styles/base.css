@@ -72,7 +72,11 @@ a {
   transition: color var(--duration-fast) var(--ease-in-out);
 }
 
-a:hover { color: var(--color-primary-hover); text-decoration-thickness: 2px; }
+/* :where() deja esta regla sin especificidad: es el hover del enlace de texto
+   y no debe ganarle a un componente que también es <a> (un .btn, una pestaña),
+   que define sus propios colores. Con a:hover, un botón primario quedaba con
+   texto azul sobre fondo azul al pasar el cursor. */
+:where(a:hover) { color: var(--color-primary-hover); text-decoration-thickness: 2px; }
 
 code, kbd, samp, pre {
   font-family: var(--font-mono);

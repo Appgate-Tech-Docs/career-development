@@ -63,7 +63,19 @@
   font-size: var(--text-base); font-weight: var(--weight-semibold);
   color: var(--color-text-heading);
 }
-.grafica__subtitulo { font-size: var(--text-xs); color: var(--color-text-muted); max-width: 70ch; }
+.grafica__subtitulo { font-size: var(--text-sm); color: var(--color-text); }
+
+/* Título de eje: qué se mide y hacia dónde crece. Más oscuro que las marcas
+   del eje, para que se lea antes que los números. */
+.grafica__eje-titulo {
+  display: inline-flex; align-items: center; gap: var(--space-3xs);
+  font-size: var(--text-xs); font-weight: var(--weight-semibold);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--color-text-heading);
+}
+.grafica__eje-titulo svg { width: 14px; height: 14px; flex: none; }
+.puntos .grafica__eje-titulo, .bala .grafica__eje-titulo { justify-content: center; margin-top: var(--space-3xs); }
+.bala .grafica__eje-titulo { display: flex; margin-right: 2.5rem; }
 
 .grafica__leyenda {
   display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-sm);
@@ -96,7 +108,7 @@
   transform: translateX(-0.5px);
 }
 
-.grafica__nota { margin: 0; font-size: var(--text-xs); color: var(--color-text-muted); max-width: 70ch; }
+.grafica__nota { margin: 0; font-size: var(--text-xs); color: var(--color-text); }
 .grafica__aviso {
   display: flex; gap: var(--space-2xs); align-items: flex-start;
   margin: 0;
@@ -104,7 +116,6 @@
   background: var(--color-surface-sunken);
   border-radius: var(--radius-md);
   font-size: var(--text-xs); color: var(--color-text);
-  max-width: 70ch;
 }
 .grafica__aviso svg { flex: none; margin-top: 0.15em; color: var(--color-info-text); }
 
@@ -182,7 +193,7 @@
 .puntos__eje { position: relative; height: 18px; margin-inline: var(--space-xs); }
 .puntos__eje span {
   position: absolute; top: 2px; transform: translateX(-50%);
-  font-size: var(--text-xs); color: var(--color-text-muted);
+  font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -237,7 +248,7 @@
 }
 .bala__bandas span {
   padding-top: var(--space-3xs);
-  font-size: var(--text-xs); color: var(--color-text-muted);
+  font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--color-text);
   text-align: center; white-space: nowrap;
   border-left: 1px solid var(--grafica-grid);
 }
@@ -245,7 +256,7 @@
 .bala__cortes { display: none; position: relative; height: 18px; margin-right: 2.5rem; border-top: 1px solid var(--grafica-grid); }
 .bala__cortes span {
   position: absolute; top: var(--space-3xs); transform: translateX(-50%);
-  font-size: var(--text-xs); color: var(--color-text-muted);
+  font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -294,25 +305,41 @@
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-rows: 1fr auto;
   gap: var(--space-2xs);
+  --matriz-esquina: 5rem;                   /* columna de los niveles de potencial */
 }
+/* Vertical, leído de abajo hacia arriba: la flecha apunta hacia donde crece. */
 .matriz__eje-y {
   writing-mode: vertical-rl; transform: rotate(180deg);
   align-self: center;
 }
-.matriz__eje-x { grid-column: 2; text-align: center; }
+.matriz__eje-y svg { transform: rotate(90deg); }
+/* Centrado sobre las celdas, no sobre la tabla entera: la columna de niveles
+   de potencial lo corría a la izquierda. */
+.matriz__eje-x { grid-column: 2; justify-self: stretch; justify-content: center; padding-left: var(--matriz-esquina); }
 .matriz__tabla {
   width: 100%;
   border-collapse: separate;
   border-spacing: var(--space-3xs);         /* el hueco de superficie entre celdas */
   table-layout: fixed;
 }
+/* Los niveles de cada eje, pegados a las celdas, con su rango debajo. */
 .matriz__tabla th {
-  font-size: var(--text-xs); font-weight: var(--weight-medium);
-  color: var(--color-text-muted);
-  padding: var(--space-3xs);
+  font-size: var(--text-sm); font-weight: var(--weight-semibold);
+  color: var(--color-text-heading);
+  padding: var(--space-3xs) var(--space-2xs);
+  line-height: 1.2;
 }
-.matriz__tabla thead th { text-align: center; }
-.matriz__tabla tbody th { width: 3.5rem; text-align: right; }
+.matriz__rango {
+  display: block;
+  font-size: var(--text-2xs); font-weight: var(--weight-regular);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.matriz__tabla thead th { text-align: center; vertical-align: bottom; }
+.matriz__tabla tbody th { text-align: right; vertical-align: middle; }
+/* table-layout: fixed toma los anchos de la primera fila: sin ancho en la
+   esquina, la columna de los niveles de potencial ocupaba un cuarto de la tabla. */
+.matriz__esquina { width: var(--matriz-esquina); }
 .matriz__celda {
   position: relative;
   vertical-align: top;
@@ -397,7 +424,7 @@
 @media (max-width: 40rem) {
   .bala__bandas { display: none; }
   .bala__cortes { display: block; }
-  .matriz__tabla tbody th { width: 2.75rem; }
+  .matriz { --matriz-esquina: 4.25rem; }
   .matriz__celda { height: auto; min-height: 4.5rem; padding: var(--space-2xs); }
   .matriz__num { display: none; }
   .matriz__etiqueta { padding-right: 0; }

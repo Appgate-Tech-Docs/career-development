@@ -39,7 +39,7 @@
        --appgate-green-medium #109255 → 3.99:1  ✗   became #0C7343 → 5.92:1 ✓
      The palette has no red or amber, so semantic danger/warning are derived
      at a lightness matched to the brand green, keeping the trio one family. */
-  --appgate-gray-muted:    #5E657D;  /* 5.78:1 on white */
+  --appgate-gray-muted:    #4F566C;  /* 7.29:1 on white: 5.78:1 se perdía en los textos chicos */
   --appgate-green-deep:    #0C7343;  /* 5.92:1 on white */
   --appgate-red-deep:      #B02A20;  /* 6.57:1 on white */
   --appgate-amber-deep:    #8A5A00;  /* 5.93:1 on white */
@@ -66,7 +66,7 @@
   /* Text. Every value verified against --color-canvas (#FAFBFD). */
   --color-text:          var(--appgate-gray-dark);    /*  9.92:1  body       */
   --color-text-heading:  var(--appgate-navy);         /* 17.8:1   headings   */
-  --color-text-muted:    var(--appgate-gray-muted);   /*  5.58:1  secondary  */
+  --color-text-muted:    var(--appgate-gray-muted);   /*  7.29:1  secondary  */
   --color-text-inverse:  #FAFAFA;                     /*  on primary fills; casi blanco, no #FFF */
 
   /* Borders */
@@ -127,8 +127,8 @@
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
   /* Type scale — ~1.25 ratio, 16px base. Desktop-first data UI. */
-  --text-2xs:  0.6875rem;  /* 11px — uppercase micro-labels ONLY           */
-  --text-xs:   0.75rem;    /* 12px — table meta, captions                  */
+  --text-2xs:  0.75rem;    /* 12px — uppercase micro-labels ONLY           */
+  --text-xs:   0.8125rem;  /* 13px — table meta, captions                  */
   --text-sm:   0.875rem;   /* 14px — dense UI, secondary copy              */
   --text-base: 1rem;       /* 16px — body floor; never smaller for prose   */
   --text-lg:   1.125rem;   /* 18px                                         */
