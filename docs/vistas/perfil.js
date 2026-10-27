@@ -177,7 +177,7 @@ export function vistaPersona({ sesion, params }) {
     </div>
 
     <div id="zona-estado">${render()}</div>
-    ${pfBase.evaluadas ? tablaEvaluadores(pfBase, { lider: true }) : ''}
+    ${pfBase.evaluadas ? tablaEvaluadores(pfBase, { lider: esSuLider }) : ''}
     ${pfBase.evaluadas && esSuLider ? bloqueSimulador(p) : ''}
   `;
 
@@ -385,6 +385,21 @@ function bloquePrioridades(pf, { propio }) {
         Habilidades por debajo del nivel que el cargo espera, de la más profunda a
         la más leve. Entre brechas iguales va primero la categoría que más pesa.
       </p>
+      ${filasBrechas(lista.slice(0, VISIBLES))}
+      ${lista.length > VISIBLES ? `
+        <details class="brechas__resto">
+          <summary>Ver las otras ${lista.length - VISIBLES} brechas</summary>
+          ${filasBrechas(lista.slice(VISIBLES))}
+        </details>` : ''}
+    </section>`;
+}
+
+// Las primeras brechas a la vista; el resto, a un clic. Con quince filas
+// abiertas, las gráficas quedaban varias pantallas más abajo.
+const VISIBLES = 6;
+
+function filasBrechas(lista) {
+  return `
       <div class="dl-rows dl-rows--brechas">
         ${lista.map((h) => `
           <div class="dl-row">
@@ -400,8 +415,7 @@ function bloquePrioridades(pf, { propio }) {
               ${scoreHtml(h.promedio, { label: `Promedio en ${h.nombre}` })}
             </span>
           </div>`).join('')}
-      </div>
-    </section>`;
+      </div>`;
 }
 
 function tablaEvaluadores(pf, { lider = false } = {}) {

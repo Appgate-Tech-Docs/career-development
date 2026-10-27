@@ -112,7 +112,7 @@ function campoHtml(c, valor, pre) {
     return `
       <div class="field">
         <label class="check">
-          <input type="checkbox" id="${id}" data-campo="${c.nombre}" ${valor ? 'checked' : ''} ${desc}>
+          <input type="checkbox" id="${id}" data-campo="${c.nombre}" ${valor ? 'checked' : ''} ${c.deshabilitado ? 'disabled' : ''} ${desc}>
           <span>${esc(c.etiqueta)}</span>
         </label>
         ${ayuda}
@@ -139,7 +139,7 @@ function campoHtml(c, valor, pre) {
   return `
     <div class="field">
       <label class="field__label" for="${id}">${esc(c.etiqueta)}${req}</label>
-      <input class="input" id="${id}" data-campo="${c.nombre}" type="${c.tipo === 'correo' ? 'email' : 'text'}"
+      <input class="input" id="${id}" data-campo="${c.nombre}" type="${c.tipo === 'correo' ? 'email' : c.tipo === 'fecha' ? 'date' : 'text'}"
              ${c.numerico ? 'inputmode="decimal"' : ''}
              maxlength="${c.max ?? 200}" value="${esc(valor ?? '')}" ${c.tipo === 'correo' ? 'autocomplete="off" spellcheck="false"' : ''} ${aria}>
       ${ayuda}
@@ -153,7 +153,7 @@ function campoHtml(c, valor, pre) {
  */
 function abrirFormulario({
   titulo, lede = '', contenido = '', campos = [], valores = {}, conMotivo = true,
-  textoBoton = 'Guardar', peligro = false, alGuardar,
+  motivoObligatorio = false, textoBoton = 'Guardar', peligro = false, alGuardar,
 }) {
   const pre = `fm${++secuencia}`;
   const volverA = selectorDe(document.activeElement);
@@ -173,7 +173,8 @@ function abrirFormulario({
           ${contenido}
           ${campos.map((c) => campoHtml(c, valores[c.nombre], pre)).join('')}
           ${conMotivo ? campoHtml({
-            nombre: '__motivo', etiqueta: 'Motivo (opcional)', tipo: 'area', filas: 2, max: 500,
+            nombre: '__motivo', etiqueta: motivoObligatorio ? 'Motivo' : 'Motivo (opcional)', tipo: 'area', filas: 2, max: 500,
+            obligatorio: motivoObligatorio,
             ayuda: 'Queda en la auditoría junto al cambio.',
           }, '', pre) : ''}
         </div>
@@ -218,8 +219,15 @@ function abrirFormulario({
       if (c.numerico && v !== '' && !Number.isFinite(Number(v))) { setFieldError(control, 'Escribe un número.'); falla = falla ?? control; }
       leidos[c.nombre] = v;
     }
+    // Todos los errores a la vez: corregir uno y descubrir el siguiente al
+    // volver a enviar es una vuelta de más.
+    const campoMotivo = conMotivo ? form.querySelector('[data-campo="__motivo"]') : null;
+    const motivo = campoMotivo ? campoMotivo.value.trim() : '';
+    if (motivoObligatorio && !motivo) {
+      setFieldError(campoMotivo, 'Escribe el motivo: este cambio afecta a mucha gente y la auditoría debe explicarlo.');
+      falla = falla ?? campoMotivo;
+    }
     if (falla) { falla.focus(); return; }
-    const motivo = conMotivo ? form.querySelector('[data-campo="__motivo"]').value.trim() : '';
     const boton = form.querySelector('[type=submit]');
     bloquear(true);
     try {
@@ -375,9 +383,9 @@ function camposPersona(p, sesion) {
       ayuda: 'Su líder es quien lidera este equipo (o el interino, si hay).',
     },
     { nombre: 'area', etiqueta: 'Área', max: 80 },
-    { nombre: 'activo', etiqueta: 'Activa: puede entrar a la herramienta', tipo: 'check', ayuda: propia ? 'No puedes desactivarte a ti mismo.' : 'Desactivar corta también su sesión abierta.' },
+    { nombre: 'activo', etiqueta: 'Activa: puede entrar a la herramienta', tipo: 'check', deshabilitado: propia, ayuda: propia ? 'No puedes quitarte el acceso a ti mismo: pídeselo a otra persona que administre.' : 'Desactivar corta también su sesión abierta.' },
     { nombre: 'oculto', etiqueta: 'Oculta: no aparece en ninguna vista de líderes ni pares', tipo: 'check', ayuda: 'No borra nada: se deshace desmarcando.' },
-    { nombre: 'admin', etiqueta: 'Administra la herramienta', tipo: 'check', ayuda: 'Ve a toda la organización y puede cambiar cualquier registro.' },
+    { nombre: 'admin', etiqueta: 'Administra la herramienta', tipo: 'check', deshabilitado: propia, ayuda: propia ? 'No puedes quitarte la administración a ti mismo: así nunca queda la herramienta sin nadie que la administre.' : 'Ve a toda la organización y puede cambiar cualquier registro.' },
   ];
 }
 
@@ -717,7 +725,7 @@ function editarCargo(c) {
    PARES Y EVALUACIONES
    ========================================================================= */
 
-const estadoPares = { evaluado: '', evaluador: '', persona: '' };
+const estadoPares = { evaluado: '', evaluador: '', persona: '', buscar: '', soloSin: false };
 
 export function vistaAdminPares() {
   const adm = administracion() ?? { pares: [] };
@@ -770,20 +778,30 @@ export function vistaAdminPares() {
 
     <section class="section" aria-labelledby="t-pares">
       <div class="section__head"><h2 class="section__title" id="t-pares">Asignaciones de esta ronda</h2></div>
-      <div class="table-wrap">
+      <!-- La pregunta de la administración es «quién no tiene pares todavía»: se
+           responde con un filtro, no recorriendo doscientas filas. -->
+      <div class="toolbar toolbar--filtros">
+        <div class="field">
+          <label class="field__label" for="par-buscar">Buscar persona</label>
+          <input class="input" id="par-buscar" type="search" autocomplete="off" value="${esc(estadoPares.buscar ?? '')}">
+        </div>
+        <label class="check"><input type="checkbox" id="par-sin" ${estadoPares.soloSin ? 'checked' : ''}><span>Solo quienes no tienen pares</span></label>
+      </div>
+      <p class="section__note" id="par-cuenta" role="status"></p>
+      <div class="table-wrap table-wrap--sticky">
         <table class="table">
           <caption class="sr-only">Cada persona evaluada con quienes la evalúan como par.</caption>
           <thead><tr><th scope="col">Persona evaluada</th><th scope="col">Pares que la evalúan</th></tr></thead>
           <tbody>
             ${conCargo.map((p) => {
               const ps = porEvaluado.get(p.id) ?? [];
-              return `<tr>
+              return `<tr data-nombre="${esc(p.nombre.toLowerCase())}" data-sin="${ps.length ? '' : '1'}">
                 <th scope="row" class="table__rowhead">${esc(p.nombre)}</th>
                 <td>${ps.length ? `<ul class="chips">${ps.map((ev) => `
                   <li class="chip">${esc(nombreDe(ev))}
                     <button type="button" class="chip__quitar" data-quitar="${esc(ev)}|${esc(p.id)}"
                             aria-label="Quitar a ${esc(nombreDe(ev))} como par de ${esc(p.nombre)}">${icon('close')}</button>
-                  </li>`).join('')}</ul>` : '<span class="text-xs text-muted">Sin pares asignados</span>'}</td>
+                  </li>`).join('')}</ul>` : '<span class="badge badge--warning">Sin pares asignados</span>'}</td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -794,6 +812,25 @@ export function vistaAdminPares() {
   return {
     html,
     montado(raiz) {
+      const filas = [...raiz.querySelectorAll('tr[data-nombre]')];
+      const cuenta = raiz.querySelector('#par-cuenta');
+      const sinNorm = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      const filtrar = (anunciar) => {
+        const q = sinNorm(raiz.querySelector('#par-buscar').value.trim());
+        const solo = raiz.querySelector('#par-sin').checked;
+        let n = 0;
+        filas.forEach((tr) => {
+          const ve = (!q || sinNorm(tr.dataset.nombre).includes(q)) && (!solo || tr.dataset.sin);
+          tr.hidden = !ve; if (ve) n += 1;
+        });
+        const sin = filas.filter((tr) => tr.dataset.sin).length;
+        const texto = `${n} de ${filas.length} personas · ${sin} sin pares asignados.`;
+        if (anunciar) anunciarDespues(cuenta, texto); else cuenta.textContent = texto;
+      };
+      raiz.querySelector('#par-buscar').addEventListener('input', (e) => { estadoPares.buscar = e.target.value; filtrar(true); });
+      raiz.querySelector('#par-sin').addEventListener('change', (e) => { estadoPares.soloSin = e.target.checked; filtrar(true); });
+      filtrar(false);
+
       const fPar = raiz.querySelector('#f-par');
       fPar.querySelector('#par-evaluado').addEventListener('change', (e) => { estadoPares.evaluado = e.target.value; });
       fPar.querySelector('#par-evaluador').addEventListener('change', (e) => { estadoPares.evaluador = e.target.value; });
@@ -819,7 +856,9 @@ export function vistaAdminPares() {
         const [evaluador, evaluado] = b.dataset.quitar.split('|');
         try {
           await withBusy(b, () => asignarPar(evaluador, evaluado, false), { label: 'Quitando…' });
-          toast(`${nombreDe(evaluador)} ya no evalúa a ${nombreDe(evaluado)}.`, 'success');
+          toast(`${nombreDe(evaluador)} ya no evalúa a ${nombreDe(evaluado)}.`, 'success', {
+            accion: { texto: 'Deshacer', alHacer: () => asignarPar(evaluador, evaluado, true) },
+          });
         } catch (e) { toast(`No se quitó: ${e.message}`, 'error'); }
       }));
 
@@ -854,9 +893,12 @@ export function vistaAdminPares() {
             lede: `Sus respuestas sobre ${nombreDe(id)} dejan de contar en los cálculos. No se borran: quedan en el Excel marcadas como anuladas, y se pueden volver a enviar mientras la ronda esté abierta.`,
             textoBoton: 'Anular',
             peligro: true,
+            motivoObligatorio: true,
             async alGuardar(_v, motivo) {
               await anularEvaluacion(id, evaluador, rol, motivo);
-              toast('Evaluación anulada.', 'success');
+              toast(`Evaluación de ${nombreDe(evaluador)} anulada.`, 'success', {
+                accion: { texto: 'Deshacer', alHacer: () => anularEvaluacion(id, evaluador, rol, 'Deshecho al anular', false) },
+              });
             },
           });
         }));
@@ -899,43 +941,87 @@ const ETIQUETA_CONFIG = {
   nombre_herramienta: 'Nombre en los correos',
 };
 
+// Lo que falta en la ronda, para decidir antes de cerrarla.
+function faltantesRonda() {
+  const conCargo = personas().filter((p) => p.cargo_id && p.activo !== false && !p.oculto);
+  const sinAuto = conCargo.filter((p) => !evaluacionesDe(p.id).some((e) => e.rol === 'Employee'));
+  const sinLider = conCargo.filter((p) => !evaluacionesDe(p.id).some((e) => e.rol === 'Leader'));
+  return { personas: conCargo.length, sinAuto, sinLider };
+}
+
+const FECHAS = new Set(['ronda_inicio', 'ronda_cierre']);
+const DE_RONDA = ['ronda_nombre', 'ronda_inicio', 'ronda_cierre'];
+const fechaLegible = (v) => {
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? '')) ? new Date(`${v}T12:00:00`) : null;
+  return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' }) : String(v ?? '');
+};
+
 export function vistaAdminRonda() {
   const config = administracion()?.config ?? [];
   const abierta = ronda()?.abierta;
+  const f = faltantesRonda();
+  const nombres = (lista) => lista.slice(0, 6).map((p) => p.nombre).join(', ') + (lista.length > 6 ? ` y ${lista.length - 6} más` : '');
+  const filaAjuste = (c) => `<tr>
+      <th scope="row" class="table__rowhead">${esc(ETIQUETA_CONFIG[c.clave] ?? c.clave)}
+        ${c.nota ? `<span class="linea-aparte text-sm text-muted">${esc(c.nota)}</span>` : ''}</th>
+      <td>${esc(FECHAS.has(c.clave) ? fechaLegible(c.valor) : String(c.valor ?? ''))}</td>
+      <td><button type="button" class="btn btn--ghost btn--sm" data-config="${esc(c.clave)}">Cambiar<span class="sr-only"> ${esc(ETIQUETA_CONFIG[c.clave] ?? c.clave)}</span></button></td>
+    </tr>`;
+  const tablaAjustes = (lista, titulo) => `
+      <div class="table-wrap">
+        <table class="table">
+          <caption class="sr-only">${esc(titulo)}</caption>
+          <thead><tr><th scope="col">Ajuste</th><th scope="col">Valor</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+          <tbody>${lista.map(filaAjuste).join('')}</tbody>
+        </table>
+      </div>`;
+  // El identificador nunca se edita a mano: cambiarlo empieza una ronda nueva y
+  // eso tiene su propio botón, con la consecuencia escrita.
+  const deRonda = config.filter((c) => DE_RONDA.includes(c.clave));
+  const deIngreso = config.filter((c) => !DE_RONDA.includes(c.clave) && !['ronda_id', 'ronda_abierta'].includes(c.clave));
+
   const html = `
-    ${cabecera('#/admin/ronda', 'Ronda y ajustes', 'Abrir o cerrar la ronda, y los ajustes del ingreso.')}
+    ${cabecera('#/admin/ronda', 'Ronda y ajustes', 'Abrir, cerrar o empezar una ronda, y los ajustes del ingreso.')}
     <section class="section" aria-labelledby="t-estado-ronda">
       <div class="section__head"><h2 class="section__title" id="t-estado-ronda">Ronda ${esc(ronda()?.nombre ?? '')}</h2></div>
       <div class="card ronda-estado">
-        <p>${abierta
-          ? '<span class="badge badge--success">Abierta</span> Las personas pueden enviar y cambiar evaluaciones.'
-          : '<span class="badge badge--warning">Cerrada</span> Nadie puede enviar ni cambiar evaluaciones. Los resultados siguen visibles.'}</p>
+        <div>
+          <p>${abierta
+            ? '<span class="badge badge--success">Abierta</span> Las personas pueden enviar y cambiar evaluaciones.'
+            : '<span class="badge badge--warning">Cerrada</span> Nadie puede enviar ni cambiar evaluaciones. Los resultados siguen visibles.'}</p>
+          <p class="text-sm">${f.sinAuto.length || f.sinLider.length
+            ? `De ${f.personas} personas con cargo, <b>${f.sinAuto.length}</b> no tienen autoevaluación y <b>${f.sinLider.length}</b> no tienen la evaluación de su líder.`
+            : `Las ${f.personas} personas con cargo tienen autoevaluación y evaluación de su líder.`}</p>
+        </div>
         <button type="button" class="btn ${abierta ? 'btn--danger' : 'btn--primary'}" data-alternar>
           ${abierta ? 'Cerrar la ronda' : 'Abrir la ronda'}
         </button>
       </div>
+      ${deRonda.length ? tablaAjustes(deRonda, 'Datos de la ronda actual') : ''}
     </section>
-    <section class="section" aria-labelledby="t-ajustes">
-      <div class="section__head"><h2 class="section__title" id="t-ajustes">Ajustes</h2></div>
-      <p class="section__note">
-        Cambiar el identificador de la ronda empieza una ronda nueva: las evaluaciones y los
-        pares de la anterior se conservan pero dejan de mostrarse.
-      </p>
-      <div class="table-wrap">
-        <table class="table">
-          <caption class="sr-only">Ajustes de la herramienta con su valor actual.</caption>
-          <thead><tr><th scope="col">Ajuste</th><th scope="col">Valor</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
-          <tbody>
-            ${config.filter((c) => c.clave !== 'ronda_abierta').map((c) => `<tr>
-              <th scope="row" class="table__rowhead">${esc(ETIQUETA_CONFIG[c.clave] ?? c.clave)}
-                ${c.nota ? `<span class="linea-aparte text-xs text-muted">${esc(c.nota)}</span>` : ''}</th>
-              <td class="text-sm">${esc(String(c.valor ?? ''))}</td>
-              <td><button type="button" class="btn btn--ghost btn--sm" data-config="${esc(c.clave)}">Cambiar<span class="sr-only"> ${esc(ETIQUETA_CONFIG[c.clave] ?? c.clave)}</span></button></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
+
+    <section class="section" aria-labelledby="t-nueva">
+      <div class="section__head">
+        <h2 class="section__title" id="t-nueva">Empezar una ronda nueva</h2>
+        <button type="button" class="btn btn--secondary btn--sm" data-nueva>Empezar una ronda nueva</button>
       </div>
+      <p class="section__note">
+        Las evaluaciones y los pares de «${esc(ronda()?.nombre ?? '')}» dejan de mostrarse; los planes
+        de desarrollo se conservan. Nada se borra: todo sigue en el Excel.
+      </p>
+    </section>
+
+    <section class="section" aria-labelledby="t-ajustes">
+      <div class="section__head"><h2 class="section__title" id="t-ajustes">Ajustes del ingreso</h2></div>
+      <p class="section__note">Cómo funcionan el código por correo y la sesión. Rara vez hace falta cambiarlos.</p>
+      ${tablaAjustes(deIngreso, 'Ajustes del ingreso con su valor actual')}
     </section>`;
+
+  const listaFaltan = f.sinAuto.length || f.sinLider.length ? `
+    <ul class="cambios-lista">
+      ${f.sinAuto.length ? `<li><b>${f.sinAuto.length}</b> sin autoevaluación: ${esc(nombres(f.sinAuto))}.</li>` : ''}
+      ${f.sinLider.length ? `<li><b>${f.sinLider.length}</b> sin evaluación de su líder: ${esc(nombres(f.sinLider))}.</li>` : ''}
+    </ul>` : '';
 
   return {
     html,
@@ -946,6 +1032,8 @@ export function vistaAdminRonda() {
           lede: abierta
             ? 'Desde ahora nadie podrá enviar ni cambiar evaluaciones. Se puede volver a abrir.'
             : 'Las personas podrán enviar y cambiar evaluaciones.',
+          contenido: abierta ? listaFaltan : '',
+          motivoObligatorio: abierta,
           textoBoton: abierta ? 'Cerrar la ronda' : 'Abrir la ronda',
           peligro: abierta,
           async alGuardar(_v, motivo) {
@@ -954,13 +1042,40 @@ export function vistaAdminRonda() {
           },
         });
       });
+      raiz.querySelector('[data-nueva]').addEventListener('click', () => {
+        const n = personas().filter((p) => p.cargo_id).reduce((a, p) => a + (evaluacionesDe(p.id).length ? 1 : 0), 0);
+        abrirFormulario({
+          titulo: 'Empezar una ronda nueva',
+          lede: `Las evaluaciones de ${n} personas y los pares de «${ronda()?.nombre ?? ''}» dejarán de mostrarse a todos. Quedan en el Excel, pero desde aquí no se pueden recuperar. Los planes de desarrollo no cambian.`,
+          campos: [
+            { nombre: 'nombre', etiqueta: 'Nombre de la ronda nueva', obligatorio: true, max: 80, ayuda: 'Por ejemplo: Ronda 2027-1. Es lo que ve todo el mundo.' },
+            { nombre: 'inicio', etiqueta: 'Inicio', tipo: 'fecha' },
+            { nombre: 'cierre', etiqueta: 'Cierre previsto', tipo: 'fecha' },
+          ],
+          motivoObligatorio: true,
+          textoBoton: 'Empezar la ronda nueva',
+          peligro: true,
+          async alGuardar(v, motivo) {
+            if (v.nombre === ronda()?.nombre) throw new ErrorCampo('nombre', 'Ponle un nombre distinto al de la ronda actual.');
+            // El identificador lo arma la herramienta: nadie tiene que inventarlo.
+            const id = `R${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Date.now().toString(36).slice(-4)}`;
+            await actualizar('config', 'ronda_id', { valor: id }, motivo);
+            await actualizar('config', 'ronda_nombre', { valor: v.nombre }, motivo);
+            if (v.inicio) await actualizar('config', 'ronda_inicio', { valor: v.inicio }, motivo);
+            if (v.cierre) await actualizar('config', 'ronda_cierre', { valor: v.cierre }, motivo);
+            if (!abierta) await actualizar('config', 'ronda_abierta', { valor: true }, motivo);
+            toast(`Ronda «${v.nombre}» iniciada.`, 'success');
+          },
+        });
+      });
       raiz.querySelectorAll('[data-config]').forEach((b) => b.addEventListener('click', () => {
         const c = config.find((x) => x.clave === b.dataset.config);
         const numerico = typeof c.valor === 'number';
+        const etiqueta = ETIQUETA_CONFIG[c.clave] ?? c.clave;
         abrirFormulario({
-          titulo: ETIQUETA_CONFIG[c.clave] ?? c.clave,
+          titulo: etiqueta,
           lede: c.nota,
-          campos: [{ nombre: 'valor', etiqueta: 'Valor', obligatorio: true, max: 300, numerico }],
+          campos: [{ nombre: 'valor', etiqueta, obligatorio: true, max: 300, numerico, tipo: FECHAS.has(c.clave) ? 'fecha' : undefined }],
           valores: { valor: c.valor },
           async alGuardar(v, motivo) {
             await actualizar('config', c.clave, { valor: numerico ? Number(v.valor) : v.valor }, motivo);

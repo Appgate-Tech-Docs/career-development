@@ -396,7 +396,7 @@ const TOAST_MAX = 3;
  * MUST be dismissible, or two failures pin permanent cards over the bottom of
  * the viewport until a reload.
  */
-export function toast(message, variant = 'info', { timeout = null } = {}) {
+export function toast(message, variant = 'info', { timeout = null, accion = null } = {}) {
   const regions = toastRegions();
   const region = variant === 'error' ? regions.assertive : regions.polite;
 
@@ -404,15 +404,27 @@ export function toast(message, variant = 'info', { timeout = null } = {}) {
   el.className = `toast toast--${variant}`;
 
   const glyph = variant === 'success' ? 'check' : variant === 'error' ? 'alert' : 'inbox';
-  const ms = timeout ?? (variant === 'error' ? 0 : 4000);
+  // Con una acción («Deshacer») el aviso no se va solo: desaparecer a los pocos
+  // segundos le quitaba la salida a quien lee despacio (WCAG 2.2.1).
+  const ms = accion ? 0 : timeout ?? (variant === 'error' ? 0 : 4000);
 
   el.innerHTML = `${icon(glyph, { className: 'toast__icon' })}
     <span class="toast__text">${esc(message)}</span>
+    ${accion ? `<button type="button" class="btn btn--ghost btn--sm toast__accion">${esc(accion.texto)}</button>` : ''}
     ${ms > 0 ? '' : `<button type="button" class="toast__close" aria-label="Descartar mensaje">
         ${icon('close')}
       </button>`}`;
 
   el.querySelector('.toast__close')?.addEventListener('click', () => el.remove());
+  el.querySelector('.toast__accion')?.addEventListener('click', async (ev) => {
+    try {
+      await withBusy(ev.currentTarget, () => accion.alHacer(), { label: 'Deshaciendo…' });
+      el.remove();
+    } catch (e) {
+      el.remove();
+      toast(`No se pudo deshacer: ${e.message}`, 'error');
+    }
+  });
 
   // Deferred by one macrotask, NOT by requestAnimationFrame.
   //

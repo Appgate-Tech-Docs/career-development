@@ -22,8 +22,12 @@ import {
   graficaDistribucion, graficaBrechas, graficaMatriz, conectarGraficas,
 } from '../lib/graficas.js';
 
+// El área elegida sobrevive a abrir un perfil y volver: antes se reiniciaba a
+// «Todas» cada vez.
+let areaRecordada = '';
+
 export function vistaOrganizacion() {
-  let area = '';
+  let area = areasConCargos().includes(areaRecordada) ? areaRecordada : '';
 
   const estado = () => {
     const n = personasEvaluadas(area || null).length;
@@ -77,6 +81,10 @@ export function vistaOrganizacion() {
           id: 'g-matriz-org',
           titulo: area ? `Matriz de talento · ${area}` : 'Matriz de talento de la organización',
           etiquetadoPor: 't-org-matriz',
+          // Cada nombre abre su perfil; con cientos de personas, una celda no
+          // puede listar a todas: las demás quedan en la tabla equivalente.
+          enlazar: (pf) => `#/persona/${pf.persona.id}`,
+          maxNombres: 8,
         })}
       </section>
 
@@ -112,7 +120,7 @@ export function vistaOrganizacion() {
           <label class="field__label" for="org-area">Área</label>
           <select class="select" id="org-area">
             <option value="">Todas las áreas</option>
-            ${areasConCargos().map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join('')}
+            ${areasConCargos().map((a) => `<option value="${esc(a)}" ${a === area ? 'selected' : ''}>${esc(a)}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -132,6 +140,7 @@ export function vistaOrganizacion() {
       };
       raiz.querySelector('#org-area').addEventListener('change', (e) => {
         area = e.target.value;
+        areaRecordada = area;
         pintar();
       });
       conectarGraficas(zona);

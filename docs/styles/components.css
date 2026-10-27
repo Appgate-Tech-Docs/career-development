@@ -86,7 +86,8 @@
 
 /* Current page carries a weight change and an underline bar, not just color —
    the same reason links are underlined. aria-current supplies the semantics. */
-.app-nav__link[aria-current="page"] {
+.app-nav__link[aria-current="page"],
+.app-nav__link[aria-current="true"] {
   color: var(--color-text-heading);
   font-weight: var(--weight-semibold);
   box-shadow: inset 0 -2px 0 var(--color-primary);
@@ -343,6 +344,14 @@
 .kpi--enlace .kpi__label { color: var(--color-primary-text); text-decoration: underline; text-underline-offset: 0.15em; }
 /* Lo que pide acción: borde ámbar, no un fondo que grite. */
 .kpi--alerta { border: 2px solid var(--color-warning); }
+
+/* Teléfono: dos por fila y cifras más chicas. Una por fila, tres cifras
+   ocupaban la pantalla entera antes de llegar a la tabla. */
+@media (max-width: 30rem) {
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi { padding: var(--space-xs) var(--space-sm); }
+  .kpi__value { font-size: var(--text-2xl); }
+}
 
 .kpi--accent {
   background: var(--color-primary-active);
@@ -768,6 +777,13 @@
 }
 .dl-rows--brechas .dl-row__values { justify-content: flex-start; font-size: var(--text-sm); color: var(--color-text); }
 @media (max-width: 40rem) { .dl-rows--brechas .dl-row { grid-template-columns: 1fr; } }
+.brechas__resto { margin-top: var(--space-2xs); }
+.brechas__resto > summary {
+  display: inline-flex; align-items: center; min-height: var(--target-min);
+  cursor: pointer; font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--color-primary-text);
+}
+.brechas__resto > summary:hover { text-decoration: underline; }
+.brechas__resto > summary:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
 
 .dl-row {
   display: flex;
@@ -989,6 +1005,8 @@
 
 /* Persistent toasts (errors) must be dismissible — without this, two failed
    saves pin permanent cards over the bottom of the viewport until a reload. */
+.toast__accion { flex: none; }
+
 .toast__close {
   display: grid;
   place-items: center;

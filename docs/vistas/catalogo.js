@@ -11,10 +11,10 @@
 
 import {
   esc, icon, toast, emptyState, bindModal, openModal, closeModal,
-  setFieldError, clearFieldErrors, withBusy, sincronizarScrollables,
+  setFieldError, clearFieldErrors, withBusy, sincronizarScrollables, confirmar,
 } from '../lib/ui.js';
 import {
-  catalogo, actualizarSkill, crearSkill, auditoria, NIVEL_ES, CATEGORIAS,
+  catalogo, actualizarSkill, crearSkill, auditoria, NIVEL_ES, CATEGORIAS, cargos,
 } from '../lib/almacen.js';
 import { subnavAdmin, ACCIONES, campoLegible, cambioHtml } from './admin.js';
 
@@ -144,9 +144,20 @@ export function vistaCatalogo({ sesion }) {
         cuerpo.querySelectorAll('[data-activa]').forEach((b) => {
           b.addEventListener('click', async () => {
             const s = catalogo().find((x) => x.id === b.dataset.activa);
-            const activa = !s.activa;
+            const activa = s.activa === false;
+            if (!activa) {
+              const usan = cargos().filter((c) => (c.habilidades ?? []).some((h) => h.skill_id === s.id));
+              const ok = await confirmar({
+                titulo: `¿Desactivar «${s.nombre}»?`,
+                cuerpo: `${usan.length
+                  ? `La usan ${usan.length} ${usan.length === 1 ? 'cargo' : 'cargos'} (${usan.slice(0, 4).map((c) => c.nombre).join(', ')}${usan.length > 4 ? '…' : ''}). `
+                  : 'Ningún cargo la usa. '}Deja de preguntarse en las evaluaciones y sale de los cálculos de esos cargos. Se puede volver a activar.`,
+                aceptar: 'Desactivar', peligro: true,
+              });
+              if (!ok) return;
+            }
             try {
-              await withBusy(b, () => actualizarSkill(s.id, { activa }));
+              await withBusy(b, () => actualizarSkill(s.id, { activa }), { label: activa ? 'Activando…' : 'Desactivando…' });
             } catch (e) {
               toast(`No se guardó el cambio: ${e.message}`, 'error');
               return;
@@ -154,7 +165,7 @@ export function vistaCatalogo({ sesion }) {
             toast(activa
               ? `«${s.nombre}» quedó activa: vuelve a aparecer en los formularios.`
               : `«${s.nombre}» quedó inactiva: no se preguntará en las próximas evaluaciones.`,
-            'success');
+            'success', activa ? {} : { accion: { texto: 'Deshacer', alHacer: () => actualizarSkill(s.id, { activa: true }) } });
           });
         });
 
@@ -296,7 +307,7 @@ function fila(s, i) {
       <td>
         <button type="button" class="btn btn--ghost btn--sm" data-ver
                 aria-expanded="false" aria-controls="${id}">
-          Ver los 4 niveles
+          Ver los 4 niveles<span class="sr-only"> de ${esc(s.nombre)}</span>
         </button>
       </td>
       <td>
@@ -307,9 +318,9 @@ function fila(s, i) {
       </td>
       <td>
         <div class="btn-group">
-          <button type="button" class="btn btn--secondary btn--sm" data-editar="${esc(s.id)}">Editar</button>
-          <button type="button" class="btn btn--ghost btn--sm" data-activa="${esc(s.id)}">
-            ${s.activa === false ? 'Activar' : 'Desactivar'}
+          <button type="button" class="btn btn--secondary btn--sm" data-editar="${esc(s.id)}">Editar<span class="sr-only"> ${esc(s.nombre)}</span></button>
+          <button type="button" class="btn btn--ghost btn--sm${s.activa === false ? '' : ' texto-peligro'}" data-activa="${esc(s.id)}">
+            ${s.activa === false ? 'Activar' : 'Desactivar'}<span class="sr-only"> ${esc(s.nombre)}</span>
           </button>
         </div>
       </td>

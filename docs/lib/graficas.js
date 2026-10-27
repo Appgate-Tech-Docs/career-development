@@ -104,6 +104,19 @@ export function graficaMiradas(miradas, { id = 'g-miradas', titulo = 'Cómo te v
         <li>${marcador(m.forma, `serie-${m.key}`)}<span>${esc(m.label)}</span></li>`).join('')}
     </ul>`;
 
+  // Los valores van escritos al final de cada fila: con solo puntos, una
+  // diferencia de 0,3 no se leía sin pasar el cursor por cada marca, y en un
+  // teléfono no hay cursor.
+  const valores = (c) => {
+    const vals = MIRADAS.map((m) => miradas[c.key][m.key]).filter(hay);
+    const separados = vals.length > 1 && Math.max(...vals) - Math.min(...vals) >= 0.75;
+    return `<span class="puntos__valores${separados ? ' puntos__valores--separados' : ''}" aria-hidden="true">${
+      MIRADAS.map((m) => {
+        const v = miradas[c.key][m.key];
+        return `<span>${marcador(m.forma, `serie-${m.key}`)}${hay(v) ? fmt(v) : '—'}</span>`;
+      }).join('')}</span>`;
+  };
+
   const filas = cats.map((c) => `
     <div class="puntos__fila">
       <span class="puntos__cat">${esc(c.label)}</span>
@@ -119,6 +132,7 @@ export function graficaMiradas(miradas, { id = 'g-miradas', titulo = 'Cómo te v
                   >${marcador(m.forma, `serie-${m.key}`)}</span>`;
         }).join('')}
       </div>
+      ${valores(c)}
     </div>`).join('');
 
   const eje = `
@@ -127,10 +141,12 @@ export function graficaMiradas(miradas, { id = 'g-miradas', titulo = 'Cómo te v
       <div class="puntos__eje">
         ${[1, 2, 3, 4, 5].map((t) => `<span style="left:${pct(t, 1, 5)}">${t}</span>`).join('')}
       </div>
+      <span></span>
     </div>
     <div class="puntos__fila" aria-hidden="true">
       <span class="puntos__cat"></span>
       ${tituloEje('Puntaje, de 1 a 5')}
+      <span></span>
     </div>`;
 
   const tabla = `
@@ -168,6 +184,12 @@ const nivelDe = (v) => {
   return NIVEL_ES.Expert;
 };
 
+// El puntaje de una categoría no baja de 40 (Básico es el piso): de 0 a 40 el
+// eje era espacio que nadie podía ocupar, y apretaba en la mitad derecha las
+// diferencias que importan.
+const PISO = 40;
+const enEje = (v) => pct(v, PISO, 100);
+
 export function graficaContraEsperado(observado, esperado, { id = 'g-esperado', etiquetadoPor = null } = {}) {
   const cats = CATEGORIAS.filter((c) => hay(observado?.[c.key]) || hay(esperado?.[c.key]));
   if (!cats.length) return '';
@@ -186,8 +208,8 @@ export function graficaContraEsperado(observado, esperado, { id = 'g-esperado', 
       <div class="bala__fila">
         <span class="bala__cat">${esc(c.label)}</span>
         <div class="bala__plot">
-          ${[40, 70, 90].map((t) => `<span class="grafica__grid" style="left:${t}%"></span>`).join('')}
-          ${hay(v) ? `<span class="bala__barra" style="width:${pct(v, 0, 100)}"
+          ${[70, 90].map((t) => `<span class="grafica__grid" style="left:${enEje(t)}"></span>`).join('')}
+          ${hay(v) ? `<span class="bala__barra" style="width:${enEje(v)}"
                         tabindex="0" role="img"
                         aria-label="${esc(`${c.label}: hoy ${fmt(v)} (${nivelDe(v)})${
                           conMeta ? `; el cargo espera ${fmt(e)} (${nivelDe(e)})` : ''}`)}"
@@ -195,8 +217,9 @@ export function graficaContraEsperado(observado, esperado, { id = 'g-esperado', 
                         data-tip-etiqueta="${esc(conMeta
                           ? `${c.label} · el cargo espera ${fmt(e)} (${nivelDe(e)})` : c.label)}"></span>`
             : `<span class="sr-only">${esc(c.label)}: sin evaluar${conMeta ? `; el cargo espera ${fmt(e)}` : ''}.</span>`}
-          ${conMeta ? `<span class="bala__meta" style="left:${pct(e, 0, 100)}" aria-hidden="true"></span>` : ''}
-          <span class="bala__valor" aria-hidden="true">${fmt(v)}</span>
+          ${conMeta ? `<span class="bala__meta" style="left:${enEje(e)}" aria-hidden="true"></span>` : ''}
+          <span class="bala__valor" aria-hidden="true">${fmt(v)}${conMeta
+            ? `<span class="bala__esperado${hay(v) && v < e ? ' bala__esperado--bajo' : ''}"> / ${fmt(e)}</span>` : ''}</span>
         </div>
       </div>`;
   }).join('');
@@ -208,15 +231,15 @@ export function graficaContraEsperado(observado, esperado, { id = 'g-esperado', 
       <span class="bala__cat"></span>
       <div>
         <div class="bala__bandas">
-          ${[['Básico', 40], ['Intermedio', 30], ['Avanzado', 20], ['Experto', 10]]
-            .map(([n, w]) => `<span style="width:${w}%">${n}</span>`).join('')}
+          ${[['Intermedio', 70], ['Avanzado', 90], ['Experto', 100]]
+            .map(([n, hasta], i, a) => `<span style="width:${((hasta - (i ? a[i - 1][1] : PISO)) / (100 - PISO)) * 100}%">${n}</span>`).join('')}
         </div>
-        <!-- En angosto, la franja de Experto mide unos 18 px y ningún nombre cabe:
+        <!-- En angosto, la franja de Experto mide unos 30 px y ningún nombre cabe:
              ahí se muestran los cortes como números. Los nombres siguen en la tabla. -->
         <div class="bala__cortes">
-          ${[40, 70, 90].map((t) => `<span style="left:${t}%">${t}</span>`).join('')}
+          ${[40, 70, 90, 100].map((t) => `<span style="left:${enEje(t)}">${t}</span>`).join('')}
         </div>
-        ${tituloEje('Puntaje, de 0 a 100')}
+        ${tituloEje('Puntaje, de 40 (Básico) a 100')}
       </div>
     </div>`;
 
@@ -238,7 +261,7 @@ export function graficaContraEsperado(observado, esperado, { id = 'g-esperado', 
     id,
     titulo: 'Cada categoría contra lo que el cargo espera',
     etiquetadoPor,
-    subtitulo: 'De 0 a 100, con los cortes de nivel del instrumento. En el total, las funciones pesan 50 % y hard y soft skills, 25 % cada una.',
+    subtitulo: 'Hoy / lo que el cargo espera, de 40 (Básico) a 100, con los cortes de nivel del instrumento. En el total, las funciones pesan 50 % y hard y soft skills, 25 % cada una.',
     leyenda,
     cuerpo: `<div class="bala">${filas}${eje}</div>`,
     tabla,
@@ -293,6 +316,12 @@ export function graficaDistribucion(dist, { id = 'g-distribucion', titulo = 'Per
    G6 — Habilidades donde más personas están por debajo de lo esperado
    ========================================================================= */
 
+/** Hasta cinco nombres de pila; con más, «y N más» (la lista completa está en la tabla). */
+function nombresCortos(personas) {
+  const pila = personas.map((n) => String(n).split(' ')[0]);
+  return pila.length > 5 ? `${pila.slice(0, 5).join(', ')} y ${pila.length - 5} más` : pila.join(', ');
+}
+
 export function graficaBrechas(items, { id = 'g-brechas', limite = 8, titulo = 'Dónde hay más brechas', etiquetadoPor = null } = {}) {
   if (!items.length) return '';
   const top = items.slice(0, limite);
@@ -306,13 +335,14 @@ export function graficaBrechas(items, { id = 'g-brechas', limite = 8, titulo = '
     return `
       <div class="barras__fila barras__fila--larga">
         <span class="barras__cat">${esc(it.nombre)}
-          <span class="text-xs text-muted">${esc(etiquetaCat(it.tipo))}</span></span>
-        <div class="barras__plot">
+          <span class="text-sm text-muted">${esc(etiquetaCat(it.tipo))}</span></span>
+        <div class="barras__plot barras__plot--con-nombres">
           <span class="barras__barra serie-unica" style="--f:${n / max}"
                 tabindex="0" role="img"
-                aria-label="${esc(`${it.nombre}: ${texto} por debajo (${detalle}): ${it.personas.join(', ')}`)}"
+                aria-label="${esc(`${it.nombre}: ${texto} por debajo (${detalle})`)}"
                 data-tip-valor="${esc(texto)}" data-tip-etiqueta="${esc(`${detalle} · ${it.personas.join(', ')}`)}"></span>
           <span class="barras__valor" aria-hidden="true">${n}</span>
+          <span class="barras__quienes">${esc(nombresCortos(it.personas))}</span>
         </div>
       </div>`;
   }).join('');
@@ -351,7 +381,7 @@ export function graficaBrechas(items, { id = 'g-brechas', limite = 8, titulo = '
  * @param {object} opciones   resaltar: clave del cuadrante a marcar;
  *                            enlazar: (perfil) => href del detalle de la persona
  */
-export function graficaMatriz(grupo, { id = 'g-matriz', resaltar = null, enlazar = null, titulo = 'Matriz de talento', etiquetadoPor = null } = {}) {
+export function graficaMatriz(grupo, { id = 'g-matriz', resaltar = null, enlazar = null, titulo = 'Matriz de talento', etiquetadoPor = null, maxNombres = Infinity } = {}) {
 
   const celda = (y, x) => {
     const clave = `${y},${x}`;
@@ -371,10 +401,11 @@ export function graficaMatriz(grupo, { id = 'g-matriz', resaltar = null, enlazar
                100% de un cargo junior cae en «Riesgo de talento». El cumplimiento
                al lado impide leerlo como un veredicto. -->
           <ul class="matriz__gente">
-            ${gente.map((pf) => `<li>${enlazar
+            ${gente.slice(0, maxNombres).map((pf) => `<li>${enlazar
               ? `<a href="${esc(enlazar(pf))}">${esc(pf.persona.nombre)}</a>`
               : esc(pf.persona.nombre)}${pf.cumplimiento
               ? ` <span class="matriz__cumple">· ${pf.cumplimiento.cumple}/${pf.cumplimiento.total} en nivel</span>` : ''}</li>`).join('')}
+            ${gente.length > maxNombres ? `<li class="matriz__mas">y ${gente.length - maxNombres} más · la lista completa está en «Ver como tabla»</li>` : ''}
           </ul>` : (resaltar ? '' : '<span class="sr-only">Nadie.</span>')}
         ${marcada ? '<span class="sr-only">(este es el cuadrante de la persona)</span>' : ''}
       </td>`;
