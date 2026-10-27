@@ -222,26 +222,53 @@ const COL_NIVEL: { [n: string]: string } = {
  *                  viene y responde al navegador SOLO con `respuesta`.
  */
 function main(workbook: ExcelScript.Workbook, peticion: string, entropia: string): string {
+  // Office Scripts vuelve asíncronas por su cuenta las llamadas a Excel, pero
+  // solo las que ve escritas directamente en `main`. Si se hacen desde los
+  // métodos de un objeto (la Fuente), llegan sin esperar y devuelven vacío.
+  // Por eso todo el acceso a Excel está acá: se lee cada tabla al empezar, el
+  // motor trabaja en memoria y anota lo que hay que escribir, y al final se
+  // escribe.
+  const libro: { [tabla: string]: { columnas: string[]; valores: Valor[][] } } = {};
+  for (const nombre of TABLAS) {
+    const t = workbook.getTable(nombre);
+    if (!t) continue;   // el motor responde "Falta la tabla" si la necesita
+    const columnas = t.getHeaderRowRange().getValues()[0].map((c) => String(c));
+    const valores = t.getRowCount() > 0 ? t.getRangeBetweenHeaderAndTotal().getValues() : [];
+    libro[nombre] = { columnas, valores };
+  }
+
+  const celdas: { tabla: string; fila: number; columna: number; valor: Valor }[] = [];
+  const filasNuevas: { tabla: string; valores: Valor[][] }[] = [];
   const fuente: Fuente = {
     leer(nombre: string) {
-      const t = workbook.getTable(nombre);
+      const t = libro[nombre];
       if (!t) fallar('configuracion', `Falta la tabla ${nombre} en el libro.`);
-      const columnas = t.getHeaderRowRange().getValues()[0].map((c) => String(c));
-      const cuerpo = t.getRangeBetweenHeaderAndTotal();
-      const valores = t.getRowCount() > 0 ? cuerpo.getValues() : [];
-      return { columnas, valores };
+      return { columnas: t.columnas.slice(), valores: t.valores.map((f) => f.slice()) };
     },
-    agregarFilas(nombre: string, valores: Valor[][]) {
-      const t = workbook.getTable(nombre);
-      if (t) t.addRows(-1, valores);
-    },
+    agregarFilas(nombre: string, valores: Valor[][]) { filasNuevas.push({ tabla: nombre, valores }); },
     actualizarCelda(nombre: string, fila: number, columna: number, valor: Valor) {
-      const t = workbook.getTable(nombre);
-      if (t) t.getRangeBetweenHeaderAndTotal().getCell(fila, columna).setValue(valor);
+      celdas.push({ tabla: nombre, fila, columna, valor });
     },
   };
-  return ejecutar(fuente, peticion, entropia, Date.now());
+
+  const salida = ejecutar(fuente, peticion, entropia, Date.now());
+
+  for (const c of celdas) {
+    const t = workbook.getTable(c.tabla);
+    if (t) t.getRangeBetweenHeaderAndTotal().getCell(c.fila, c.columna).setValue(c.valor);
+  }
+  for (const n of filasNuevas) {
+    const t = workbook.getTable(n.tabla);
+    if (t) t.addRows(-1, n.valores);
+  }
+  return salida;
 }
+
+/** Las tablas que el motor usa; `main` las lee todas al empezar. */
+const TABLAS = [
+  'Config', 'Modelo', 'Habilidades', 'Cargos', 'CargoHabilidades', 'Equipos', 'Personas',
+  'Administradores', 'Pares', 'Evaluaciones', 'Planes', 'Codigos', 'Sesiones', 'Auditoria',
+];
 
 /* -------------------------------------------------------------------------
    Despacho

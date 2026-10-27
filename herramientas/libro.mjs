@@ -40,6 +40,34 @@ export function cargarMotor() {
   return new Function(`${codigo}\nreturn ejecutar;`)();
 }
 
+/** La entrada de Excel (`main`), para probarla con un libro simulado. */
+export function cargarMain() {
+  const ruta = join(RAIZ, 'herramientas', 'compilado', 'motor.js');
+  // eslint-disable-next-line no-new-func
+  return new Function(`${readFileSync(ruta, 'utf8')}
+return main;`)();
+}
+
+/** Un ExcelScript.Workbook mínimo sobre las tablas en memoria. */
+export function libroSimulado(tablas) {
+  const rango = (filas) => ({
+    getValues: () => filas.map((f) => [...f]),
+    getCell: (i, j) => ({ setValue: (v) => { filas[i][j] = v; } }),
+  });
+  return {
+    getTable(nombre) {
+      const t = tablas[nombre];
+      if (!t) return undefined;
+      return {
+        getHeaderRowRange: () => rango([t.columnas]),
+        getRangeBetweenHeaderAndTotal: () => rango(t.valores),
+        getRowCount: () => t.valores.length,
+        addRows: (_i, valores) => { t.valores.push(...valores.map((f) => [...f])); },
+      };
+    },
+  };
+}
+
 function valorDeCelda(v) {
   if (v === null || v === undefined) return '';
   if (typeof v === 'object') {

@@ -8,7 +8,7 @@
 
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { cargarMotor, leerLibro, fuenteSobre, entropia } from './libro.mjs';
+import { cargarMotor, cargarMain, libroSimulado, leerLibro, fuenteSobre, entropia } from './libro.mjs';
 
 const ejecutar = cargarMotor();
 let tablas;
@@ -325,4 +325,22 @@ test('dos ejecuciones cruzadas sobre la misma fila no se pisan columnas distinta
   const fila = t.valores.find((f) => f[t.columnas.indexOf('id')] === 'marcela-duarte');
   assert.equal(fila[t.columnas.indexOf('nombre')], 'Marcela Duarte B', 'A pisó el nombre que cambió B');
   assert.equal(fila[t.columnas.indexOf('area')], 'Área A');
+});
+
+/* ------------------------------------------------------------ entrada de Excel */
+
+test('main lee el libro, responde y escribe al final (como dentro de Excel)', () => {
+  const main = cargarMain();
+  const libro = libroSimulado(tablas);
+  const correo = 'valentina.guerrero@example.com';
+  const antes = tablas.Codigos.valores.length;
+  const s = JSON.parse(main(libro, JSON.stringify({ accion: 'solicitarCodigo', datos: { correo } }), entropia()));
+  assert.equal(s.respuesta.ok, true, JSON.stringify(s.respuesta));
+  assert.ok(s.correo, 'debía salir el correo con el código');
+  assert.equal(tablas.Codigos.valores.length, antes + 1, 'el código nuevo no quedó escrito');
+
+  const v = JSON.parse(main(libro, JSON.stringify({ accion: 'verificarCodigo', datos: { correo, codigo: '000000' } }), entropia()));
+  assert.equal(v.respuesta.ok, false);
+  const t = tablas.Codigos;
+  assert.equal(t.valores[antes][t.columnas.indexOf('intentos')], 1, 'el intento fallido no quedó escrito en la celda');
 });
