@@ -1,0 +1,426 @@
+/* ==========================================================================
+   GRÁFICAS
+   ==========================================================================
+   Colores de serie: tonos de la marca Appgate, validados con
+   validate_palette.js (guía de visualización) sobre la superficie del portal.
+
+     Categórica, 3 series, TODOS los pares (los puntos pueden caer juntos):
+       --appgate-blue-medium · --appgate-green-medium · --appgate-blue-bright
+       daltonismo ΔE 19,6 · visión normal ΔE 20,6 · banda de luz y croma OK.
+       --appgate-blue-bright queda en 2,16:1 contra la superficie, así que
+       lleva borde (--appgate-blue-mid, 3,39:1), forma propia y tabla.
+
+     Ordinal, 4 niveles (Básico → Experto), un solo tono:
+       blue-bright · blue-mid · blue-medium · blue-deep
+       monótona, saltos de luz >= 0,06, dispersión de tono 13°.
+
+   Ninguna de estas es la paleta de estado (verde/ámbar/rojo del portal): las
+   series son identidad, no "bien" o "mal".
+
+   El portal existe solo en modo claro (index.html declara color-scheme: light),
+   así que no hay variante oscura que validar. Sí hay variante de alto contraste
+   de Windows, al final.
+   ========================================================================== */
+
+:root {
+  --serie-employee: var(--appgate-blue-medium);
+  --serie-leader:   var(--appgate-green-medium);
+  --serie-peer:     var(--appgate-blue-bright);
+  --serie-peer-borde: var(--appgate-blue-mid);
+
+  --nivel-basic:        var(--appgate-blue-bright);
+  --nivel-intermediate: var(--appgate-blue-mid);
+  --nivel-advanced:     var(--appgate-blue-medium);
+  --nivel-expert:       var(--appgate-blue-deep);
+
+  --grafica-grid:  var(--color-border);          /* hairline, un paso sobre la superficie */
+  --grafica-meta:  var(--appgate-navy);          /* marca de lo esperado: tinta, no serie */
+  --grafica-barra: 14px;                         /* <= 24px: las barras no llenan el carril */
+  --grafica-carril: 24px;                        /* alto de cada carril de G1 = su área de toque */
+}
+
+/* ---------------------------------------------------------------- contenedor */
+
+.grafica {
+  margin: 0;
+  padding: var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+/* Sola bajo el h2 de su sección, la gráfica no necesita su propia tarjeta: la
+   página era una pila de cajas iguales y ninguna destacaba. Las que van en
+   pareja sí la conservan, porque ahí el borde es lo que las separa. */
+.grafica--suelta { padding: 0; border: 0; background: none; border-radius: 0; }
+
+.grafica__cabeza { display: flex; flex-direction: column; gap: var(--space-3xs); }
+.grafica__titulo {
+  margin: 0;
+  font-size: var(--text-base); font-weight: var(--weight-semibold);
+  color: var(--color-text-heading);
+}
+.grafica__subtitulo { font-size: var(--text-xs); color: var(--color-text-muted); max-width: 70ch; }
+
+.grafica__leyenda {
+  display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-sm);
+  margin: 0; padding: 0; list-style: none;
+  font-size: var(--text-xs); color: var(--color-text);
+}
+.grafica__leyenda li { display: inline-flex; align-items: center; gap: var(--space-3xs); }
+
+.grafica__marca {
+  flex: none; overflow: visible;
+  transition: transform var(--duration-base) var(--ease-out);
+}
+.grafica__anillo > * { fill: var(--color-surface); stroke: var(--color-surface); stroke-width: 4; }
+.grafica__figura > * { stroke-width: 1.25; }
+.serie-employee .grafica__figura > * { fill: var(--serie-employee); stroke: var(--serie-employee); }
+.serie-leader   .grafica__figura > * { fill: var(--serie-leader);   stroke: var(--serie-leader); }
+.serie-peer     .grafica__figura > * { fill: var(--serie-peer);     stroke: var(--serie-peer-borde); }
+
+.grafica__muestra { display: inline-block; flex: none; }
+.grafica__muestra--barra {
+  width: 14px; height: 10px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--serie-employee);
+}
+.grafica__muestra--meta  { width: 3px; height: 14px; border-radius: 1px; background: var(--grafica-meta); }
+
+.grafica__grid {
+  position: absolute; top: 0; bottom: 0; width: 1px;
+  background: var(--grafica-grid);
+  transform: translateX(-0.5px);
+}
+
+.grafica__nota { margin: 0; font-size: var(--text-xs); color: var(--color-text-muted); max-width: 70ch; }
+.grafica__aviso {
+  display: flex; gap: var(--space-2xs); align-items: flex-start;
+  margin: 0;
+  padding: var(--space-2xs) var(--space-xs);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs); color: var(--color-text);
+  max-width: 70ch;
+}
+.grafica__aviso svg { flex: none; margin-top: 0.15em; color: var(--color-info-text); }
+
+/* "Ver como tabla": con una flecha propia que gira al abrir. En teléfono
+   components.css vuelve flex al <summary> para darle 44 px de alto, y eso
+   borra el triángulo nativo en Chrome y Firefox; sin él no había señal de
+   abierto o cerrado. El texto cambia a "Ocultar tabla" por la misma razón. */
+.grafica__tabla > summary {
+  display: inline-flex; align-items: center; gap: var(--space-3xs);
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--text-xs);
+  color: var(--color-primary-text);
+  width: max-content;
+  padding: var(--space-3xs) 0;             /* 26 px; en teléfono components.css lo lleva a 44 */
+  border-radius: var(--radius-sm);
+  text-decoration: underline transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--duration-base) var(--ease-out);
+}
+.grafica__tabla > summary::-webkit-details-marker { display: none; }
+.grafica__tabla > summary:hover { text-decoration-color: currentColor; }
+.grafica__tabla > summary:active { color: var(--color-primary-active); }
+.grafica__tabla > summary:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+.grafica__tabla-flecha { transition: transform var(--duration-base) var(--ease-out); }
+.grafica__tabla[open] .grafica__tabla-flecha { transform: rotate(90deg); }
+.grafica__tabla-ocultar,
+.grafica__tabla[open] .grafica__tabla-ver { display: none; }
+.grafica__tabla[open] .grafica__tabla-ocultar { display: inline; }
+.grafica__tabla[open] > summary { margin-bottom: var(--space-2xs); }
+
+/* Marcas enfocables: el anillo de foco es el mismo del resto del portal, y el
+   foco repite el efecto del mouse para que el teclado vea la misma respuesta. */
+.puntos__punto:focus-visible,
+.bala__barra:focus-visible,
+.barras__barra:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------- G1 · puntos alineados */
+
+.puntos { display: flex; flex-direction: column; }
+/* minmax(0, 1fr) en todas las columnas de trazado: un 1fr a secas no baja de
+   su contenido mínimo, y en un teléfono la gráfica empujaba la página hacia el
+   costado. */
+.puntos__fila {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9.5rem) minmax(0, 1fr);
+  gap: var(--space-xs);
+  align-items: center;
+}
+.puntos__cat { font-size: var(--text-sm); color: var(--color-text); }
+.puntos__plot {
+  position: relative;
+  /* Tres carriles de 24 px, uno por evaluador: las áreas de toque se tocan
+     pero no se pisan (con 56 px de alto se solapaban unos 10 px). */
+  height: calc(var(--grafica-carril) * 3);
+  margin-inline: var(--space-xs);           /* que el marcador en 1 o en 5 no se corte */
+  border-bottom: 1px solid var(--grafica-grid);
+}
+.puntos__punto {
+  position: absolute;
+  top: calc(var(--grafica-carril) * (var(--carril, 0) + 0.5));
+  /* Área de toque de 24px alrededor de una marca de 14px. */
+  width: var(--grafica-carril); height: var(--grafica-carril);
+  display: grid; place-items: center;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  cursor: default;
+}
+.puntos__punto:hover .grafica__marca,
+.puntos__punto:focus-visible .grafica__marca { transform: scale(1.25); }
+.puntos__fila--eje .puntos__cat { visibility: hidden; }
+.puntos__eje { position: relative; height: 18px; margin-inline: var(--space-xs); }
+.puntos__eje span {
+  position: absolute; top: 2px; transform: translateX(-50%);
+  font-size: var(--text-xs); color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------- G2 · barra contra lo esperado */
+
+.bala { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.bala__fila {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9.5rem) minmax(0, 1fr);
+  gap: var(--space-xs);
+  align-items: center;
+}
+.bala__cat { font-size: var(--text-sm); color: var(--color-text); }
+.bala__plot { position: relative; height: 30px; margin-right: 2.5rem; }
+.bala__barra {
+  position: absolute; left: 0; top: 50%;
+  height: var(--grafica-barra);
+  transform: translateY(-50%);
+  background: var(--serie-employee);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;   /* redondo en el dato, recto en la base */
+  min-width: 2px;
+  transition: filter var(--duration-base) var(--ease-out);
+}
+/* Se oscurece, no se aclara: aclarar el Básico (2,16:1) lo dejaba casi blanco. */
+.bala__barra:hover, .bala__barra:focus-visible,
+.barras__barra:hover, .barras__barra:focus-visible { filter: brightness(0.85); }
+.bala__meta {
+  position: absolute; top: 3px; bottom: 3px; width: 3px;
+  background: var(--grafica-meta);
+  border-radius: 1px;
+  transform: translateX(-1.5px);
+  box-shadow: 0 0 0 2px var(--color-surface);   /* anillo: se ve aunque caiga sobre la barra */
+  pointer-events: none;
+}
+.bala__valor {
+  /* En una columna fija al final de la fila, no pegada a la punta de la barra:
+     la marca de lo esperado suele caer justo después de la punta —quien está
+     cerca de lo esperado es el caso normal— y la atravesaba de lado a lado. */
+  position: absolute; top: 50%;
+  right: -2.5rem; width: 2.25rem;
+  text-align: right;
+  transform: translateY(-50%);
+  font-size: var(--text-xs); font-weight: var(--weight-semibold);
+  color: var(--color-text-heading);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.bala__fila--eje .bala__cat { visibility: hidden; }
+.bala__bandas {
+  display: flex; margin-right: 2.5rem;
+  border-top: 1px solid var(--grafica-grid);
+}
+.bala__bandas span {
+  padding-top: var(--space-3xs);
+  font-size: var(--text-xs); color: var(--color-text-muted);
+  text-align: center; white-space: nowrap;
+  border-left: 1px solid var(--grafica-grid);
+}
+.bala__bandas span:first-child { border-left: 0; }
+.bala__cortes { display: none; position: relative; height: 18px; margin-right: 2.5rem; border-top: 1px solid var(--grafica-grid); }
+.bala__cortes span {
+  position: absolute; top: var(--space-3xs); transform: translateX(-50%);
+  font-size: var(--text-xs); color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------- G5 / G6 · barras horizontales */
+
+.barras { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.barras__fila {
+  display: grid;
+  grid-template-columns: minmax(6rem, 8rem) minmax(0, 1fr);
+  gap: var(--space-xs);
+  align-items: center;
+}
+.barras__fila--larga { grid-template-columns: minmax(9rem, 15rem) minmax(0, 1fr); }
+.barras__cat {
+  font-size: var(--text-sm); color: var(--color-text);
+  display: flex; flex-direction: column; line-height: 1.3;
+}
+.barras__plot { position: relative; height: 26px; display: flex; align-items: center; gap: var(--space-2xs); }
+.barras__barra {
+  height: var(--grafica-barra);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  flex: none;
+  min-width: 2px;
+  /* La fracción se aplica al carril MENOS el espacio de la cifra: medida sobre
+     el 100%, la barra más larga empujaba el número fuera del contenedor. */
+  width: calc((100% - 2.5rem) * var(--f, 0));
+  transition: filter var(--duration-base) var(--ease-out);
+}
+.barras__valor {
+  font-size: var(--text-xs); font-weight: var(--weight-semibold);
+  color: var(--color-text-heading);
+  font-variant-numeric: tabular-nums;
+}
+.serie-unica   { background: var(--serie-employee); }
+.nivel-basic        { background: var(--nivel-basic); }
+.nivel-intermediate { background: var(--nivel-intermediate); }
+.nivel-advanced     { background: var(--nivel-advanced); }
+.nivel-expert       { background: var(--nivel-expert); }
+
+/* ------------------------------------------------------------ G4 · la matriz */
+
+.table-wrap.matriz__scroll { border: 0; background: none; border-radius: 0; padding: 0; }
+.matriz {
+  min-width: 30rem;                         /* por debajo, las etiquetas se parten a mitad de palabra */
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  gap: var(--space-2xs);
+}
+.matriz__eje-y {
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  align-self: center;
+}
+.matriz__eje-x { grid-column: 2; text-align: center; }
+.matriz__tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: var(--space-3xs);         /* el hueco de superficie entre celdas */
+  table-layout: fixed;
+}
+.matriz__tabla th {
+  font-size: var(--text-xs); font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  padding: var(--space-3xs);
+}
+.matriz__tabla thead th { text-align: center; }
+.matriz__tabla tbody th { width: 3.5rem; text-align: right; }
+.matriz__celda {
+  position: relative;
+  vertical-align: top;
+  padding: var(--space-xs);
+  height: 5.5rem;
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+}
+.matriz__celda.tiene-gente { background: var(--color-info-subtle); }
+.matriz__celda.is-marcada {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+}
+.matriz__num {
+  position: absolute; top: var(--space-3xs); right: var(--space-2xs);
+  font-size: var(--text-2xs); color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.matriz__etiqueta {
+  display: block;
+  font-size: var(--text-xs); font-weight: var(--weight-semibold);
+  color: var(--color-text-heading);
+  padding-right: var(--space-sm);
+  line-height: 1.3;
+}
+.matriz__conteo { display: block; margin-top: var(--space-3xs); font-size: var(--text-xs); color: var(--color-text); }
+.matriz__gente {
+  display: flex; flex-direction: column; gap: 2px;
+  margin: var(--space-3xs) 0 0; padding: 0; list-style: none;
+  font-size: var(--text-xs); line-height: 1.5; overflow-wrap: anywhere;
+}
+/* 24 px de alto por enlace (WCAG 2.5.8): a text-xs medían 18 y estaban pegados. */
+.matriz__gente a { display: inline-block; padding-block: 3px; color: var(--color-primary-text); }
+.matriz__cumple { color: var(--color-text-muted); }
+
+/* El detalle del cuadrante de una persona, debajo de la matriz. */
+.matriz-detalle {
+  display: flex; flex-direction: column; gap: var(--space-3xs);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.matriz-detalle__etiqueta { font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--color-text-heading); }
+
+/* Dos gráficas lado a lado cuando hay ancho; una sobre otra si no. */
+.graficas-par {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+/* --------------------------------------------------------------- tooltip */
+
+/* Se puede pasar el mouse por encima (conectarGraficas lo mantiene abierto un
+   instante al salir de la marca) y se cierra con Escape. */
+.grafica-tip {
+  position: absolute; z-index: var(--z-tooltip);
+  max-width: 18rem;
+  padding: var(--space-2xs) var(--space-xs);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.grafica-tip[hidden] { display: none; }
+.grafica-tip__valor { font-size: var(--text-sm); color: var(--color-text-heading); font-variant-numeric: tabular-nums; }
+.grafica-tip__etiqueta { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .grafica__marca, .bala__barra, .barras__barra,
+  .grafica__tabla > summary, .grafica__tabla-flecha { transition: none; }
+  .puntos__punto:hover .grafica__marca,
+  .puntos__punto:focus-visible .grafica__marca { transform: none; }
+}
+
+/* Angosto: la matriz se lee mejor con celdas más bajas y sin número. */
+@media (max-width: 40rem) {
+  .bala__bandas { display: none; }
+  .bala__cortes { display: block; }
+  .matriz__tabla tbody th { width: 2.75rem; }
+  .matriz__celda { height: auto; min-height: 4.5rem; padding: var(--space-2xs); }
+  .matriz__num { display: none; }
+  .matriz__etiqueta { padding-right: 0; }
+  .puntos__fila, .bala__fila { grid-template-columns: 6rem minmax(0, 1fr); }
+}
+
+/* Alto contraste de Windows: el sistema borra los fondos, y con ellos todas las
+   barras, la marca de lo esperado y la cuadrícula. Se pintan con los colores
+   del sistema; la identidad de cada serie sigue en la forma del marcador. */
+@media (forced-colors: active) {
+  .bala__barra, .barras__barra, .bala__meta, .grafica__grid,
+  .grafica__muestra, .grafica__marca {
+    forced-color-adjust: none;
+  }
+  .bala__barra, .barras__barra, .grafica__muestra--barra { background: CanvasText; }
+  .bala__meta, .grafica__muestra--meta { background: Highlight; box-shadow: 0 0 0 2px Canvas; }
+  .grafica__grid { background: GrayText; }
+  .grafica__anillo > * { fill: Canvas; stroke: Canvas; }
+  .grafica__figura > * { fill: CanvasText; stroke: CanvasText; }
+  .matriz__celda { border-color: CanvasText; }
+  .matriz__celda.is-marcada { border-color: Highlight; border-width: 3px; }
+}
+
+@media print {
+  .grafica__tabla { display: none; }
+}

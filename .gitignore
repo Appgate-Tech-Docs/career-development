@@ -1,0 +1,6 @@
+node_modules/
+herramientas/compilado/
+excel/local/
+*.log
+.DS_Store
+~$*.xlsx

@@ -1,0 +1,150 @@
+/* ==========================================================================
+   MVP — lo que la carcasa de una sola página necesita y las pantallas
+   separadas no necesitaban.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Barra de demo. Fija arriba del encabezado y no descartable: es la advertencia
+   que evita que alguien crea que guardó algo. Una barra que se puede cerrar se
+   cierra en los primeros diez segundos y ya nadie la vuelve a ver.
+   -------------------------------------------------------------------------- */
+
+.demo-bar {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-text);
+  border-bottom: 1px solid var(--color-warning);
+  font-size: var(--text-xs);
+}
+
+.demo-bar__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: 34px;
+  padding-block: var(--space-3xs);
+}
+
+.demo-bar b { color: inherit; }
+
+/* --------------------------------------------------------------------------
+   Menú de usuario
+   -------------------------------------------------------------------------- */
+
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin-inline-start: var(--space-xs);
+  padding-inline-start: var(--space-xs);
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.usuario__nombre {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-heading);
+}
+
+.usuario__rol {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
+  color: var(--color-text-muted);
+}
+
+/* Bajo 48rem el encabezado ya envuelve; el borde vertical ahí queda a mitad de
+   la nada, así que se convierte en un separador horizontal. */
+@media (max-width: 48rem) {
+  /* Angosto, el encabezado se parte en tres filas (marca, menú, usuario) y fijo
+     ocupaba unos 200 px: un cuarto de la pantalla de un teléfono, todo el tiempo.
+     Acá se desplaza con la página, y el menú queda arriba de todo. */
+  .app-header { position: static; }
+
+  .usuario {
+    width: 100%;
+    margin-inline-start: 0;
+    padding-inline-start: 0;
+    padding-block-start: var(--space-2xs);
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--color-border);
+  }
+  .app-nav { margin-inline-start: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   Utilidades que solo el MVP usa
+   -------------------------------------------------------------------------- */
+
+/* El chevron de "volver": el mismo icono girado, en lugar de un segundo SVG. */
+.rotate-180 { transform: rotate(180deg); }
+
+/* Antes eran estilos en línea repetidos en las vistas. */
+.volver { padding-inline: 0; margin-bottom: var(--space-2xs); }
+.linea-aparte { display: block; }
+.insignias {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: var(--space-3xs);
+  margin-top: 2px;
+}
+.texto-exito { color: var(--color-success-text); }
+.texto-peligro { color: var(--color-danger-text); }
+.detalle-nivel { margin-top: var(--space-3xs); max-width: 70ch; }
+.field--sin-margen { margin: 0; }
+
+/* --------------------------------------------------------------------------
+   Impresión — la única salida real de la herramienta
+   --------------------------------------------------------------------------
+   El plan se imprime desde la misma página en lugar de abrir otra ventana: un
+   `window.open` lo bloquea cualquier navegador con el bloqueador de popups
+   activo, y ahí la única salida dejaría de funcionar sin avisar.
+   -------------------------------------------------------------------------- */
+
+.solo-impresion { display: none; }
+
+@media print {
+  /* Fuera todo lo que no es el documento. */
+  .demo-bar,
+  .app-header,
+  .app-footer,
+  .skip-link,
+  .toast-region,
+  .page-header,
+  .section,
+  .callout { display: none !important; }
+
+  .solo-impresion {
+    display: block;
+    max-width: none;
+    color: #000;
+  }
+
+  /* Tinta negra sobre blanco: los tokens de superficie del portal salen grises
+     en papel y bajan la legibilidad sin aportar nada. */
+  body {
+    background: #FFF;
+    color: #000;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  .solo-impresion h1 { font-size: 18pt; margin-bottom: 4pt; }
+  .solo-impresion h2 { font-size: 14pt; margin-top: 16pt; margin-bottom: 4pt; }
+  .solo-impresion h3 {
+    font-size: 10pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 10pt;
+    margin-bottom: 2pt;
+  }
+  .solo-impresion p { margin-bottom: 6pt; max-width: none; }
+  .solo-impresion ul { margin: 0 0 6pt 16pt; }
+  .solo-impresion hr { border: 0; border-top: 1px solid #999; margin: 14pt 0; }
+
+  /* Un plan no debe partirse a mitad de página si cabe entero. */
+  .solo-impresion h2 { break-after: avoid; }
+  .solo-impresion h3 { break-after: avoid; }
+
+  @page { margin: 18mm 16mm; }
+}

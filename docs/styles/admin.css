@@ -1,0 +1,236 @@
+/* ==========================================================================
+   ADMINISTRACIÓN E INGRESO — lo que la versión con servidor agrega
+   ==========================================================================
+   Solo tokens: espaciado --space-*, tipografía --text-*, radios --radius-*,
+   foco --focus-ring-*, áreas de toque --target-min. Donde ya había un
+   componente (badge, toolbar__check, callout, field__error) se reutiliza.
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ ingreso */
+
+/* El ingreso es la única pantalla sin menú: se centra en una columna angosta
+   para que el formulario sea lo único que hay que mirar. */
+.entrar {
+  max-width: 26rem;
+  margin: var(--space-xl) auto 0;
+}
+.entrar .page-header { margin-bottom: var(--space-md); }
+.entrar__form { display: flex; flex-direction: column; gap: var(--space-sm); }
+.entrar__form .field { margin: 0; }
+.entrar__secundarias { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2xs); }
+.entrar__dev { margin: 0; }
+.input--codigo {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  letter-spacing: 0.25em;            /* separa los dígitos: se leen y se dictan de a uno */
+  max-width: 12rem;
+}
+
+/* ------------------------------------------------------- pestañas de admin */
+
+/* Mismo tratamiento que el menú principal (subrayado + semibold), en un nivel
+   más bajo: el nivel secundario no puede gritar más que el primario. */
+.subnav {
+  display: flex;
+  gap: var(--space-3xs);
+  margin-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.subnav__link {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: var(--target-min);
+  padding: 0 var(--space-xs);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: inset 0 -2px 0 transparent;
+  transition: color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out),
+    background-color var(--duration-base) var(--ease-out);
+}
+.subnav__link:hover { color: var(--color-text-heading); background: var(--color-surface-hover); }
+.subnav__link:active { background: var(--color-border); }
+.subnav__link:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--focus-ring-offset) * -1);
+}
+.subnav__link[aria-current="page"] {
+  color: var(--color-text-heading);
+  font-weight: var(--weight-semibold);
+  box-shadow: inset 0 -2px 0 var(--color-primary);
+}
+
+/* ------------------------------------------------------------ formularios */
+
+/* El check de los formularios es el mismo componente que el de las barras de
+   filtro, con área de toque completa. */
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+  min-height: var(--target-min);
+  padding-block: var(--space-2xs);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  cursor: pointer;
+}
+.check:hover { color: var(--color-text-heading); }
+.check input { width: 1rem; height: 1rem; margin: var(--space-3xs) 0 0; flex: none; accent-color: var(--color-primary); }
+.check input:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
+
+/* El error general de un formulario es un callout de peligro, oculto mientras está vacío. */
+.form-error { margin: var(--space-sm) 0 0; }
+.form-error:empty { display: none; }
+
+.modal__title + .modal__campos,
+.modal__title + .modal__lede + .modal__campos { margin-top: var(--space-sm); }
+.modal__campos { border: 0; margin: 0; padding: 0; min-width: 0; }
+.modal__campos:disabled { opacity: 0.7; }
+/* Sin este margen interno, el anillo de foco del primer campo se cortaba en
+   el borde del área con desplazamiento. */
+.modal__scroll { padding: var(--space-3xs); margin-inline: calc(var(--space-3xs) * -1); }
+
+.cambios-lista { margin: 0 0 var(--space-sm); padding-left: var(--space-md); font-size: var(--text-sm); }
+
+.select--sm { min-height: var(--target-min); font-size: var(--text-sm); }
+@media (min-width: 40rem) {
+  .select--sm { min-height: 36px; padding-block: var(--space-3xs); }
+}
+
+/* ----------------------------------------------------------------- tablas */
+
+.acciones { white-space: nowrap; }
+.acciones .btn + .btn { margin-left: var(--space-3xs); }
+.paginacion { margin-top: var(--space-sm); align-items: center; }
+
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-3xs); margin: 0; padding: 0; list-style: none; }
+/* Un badge neutro con un botón de quitar. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: 0 0 0 var(--space-2xs);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  font-size: var(--text-xs);
+  color: var(--color-text);
+}
+.chip__quitar {
+  display: inline-grid;
+  place-items: center;
+  width: var(--target-min);
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
+}
+.chip__quitar:hover { background: var(--color-surface-hover); color: var(--color-danger-text); }
+.chip__quitar:active { background: var(--color-border); }
+.chip__quitar:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: calc(var(--focus-ring-offset) * -1); }
+.chip__quitar:disabled { opacity: 0.5; cursor: progress; }
+.chip__quitar svg { width: 0.9em; height: 0.9em; }
+
+/* Bloques lado a lado (Pares: asignar | evaluaciones recibidas). */
+.admin-bloque { display: flex; flex-direction: column; gap: var(--space-xs); }
+.admin-bloque__titulo { margin: 0; font-size: var(--text-lg); color: var(--color-text-heading); }
+.admin-bloque .field { margin: 0 0 var(--space-xs); }
+
+/* ----------------------------------------------------------------- cargos */
+
+.cargos { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.cargo {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+.cargo__resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2xs) var(--space-sm);
+  min-height: var(--target-min);
+  padding: var(--space-xs) var(--space-sm);
+  list-style: none;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-base) var(--ease-out);
+}
+.cargo__resumen::-webkit-details-marker { display: none; }
+.cargo__resumen:hover { background: var(--color-surface-hover); }
+.cargo__resumen:active { background: var(--color-border); }
+.cargo__resumen:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
+.cargo__flecha { flex: none; color: var(--color-text-muted); transition: transform var(--duration-base) var(--ease-out); }
+.cargo[open] .cargo__flecha { transform: rotate(90deg); }
+.cargo__nombre { flex: 1 1 14rem; }
+.cargo[open] > .cargo__resumen { border-bottom: 1px solid var(--color-border); border-radius: var(--radius-md) var(--radius-md) 0 0; }
+.cargo__cuerpo { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-sm); }
+.cargo__agregar { margin: 0; align-items: flex-end; }
+.cargo__fila--cambiada { background: var(--color-info-subtle); }
+.cargo__fila--quitada { background: var(--color-warning-subtle); }
+.cargo__fila--quitada .table__rowhead { text-decoration: line-through; }
+.cargo__guardar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+.cargo__guardar p { margin: 0; }
+
+/* -------------------------------------------------------------- auditoría */
+
+.filtros-auditoria { display: flex; flex-direction: column; gap: var(--space-sm); }
+.filtros-auditoria .field { margin: 0; }
+.filtros-auditoria__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-xs) var(--space-sm);
+  margin-top: var(--space-xs);
+}
+.filtros-auditoria__mas > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-primary-text);
+}
+.filtros-auditoria__mas > summary:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
+.filtros-auditoria__acciones { display: flex; gap: var(--space-2xs); }
+
+.auditoria__fecha { white-space: nowrap; color: var(--color-text-muted); }
+.auditoria__cambio { max-width: 28rem; overflow-wrap: anywhere; }
+.auditoria__cambio s { color: var(--color-text-muted); }
+
+ul.audit { margin: 0; padding: 0; list-style: none; }
+
+.ronda-estado { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.ronda-estado p { margin: 0; display: flex; align-items: center; gap: var(--space-2xs); flex-wrap: wrap; }
+
+/* Medidas de lectura, en lugar de max-width en línea. */
+.medida { max-width: 70ch; }
+.medida-corta { max-width: 44ch; }
+
+/* ---------------------------------------------------------------- teléfono */
+
+@media (max-width: 40rem) {
+  .toolbar--filtros > .field { flex: 1 1 100%; }
+  .entrar { margin-top: var(--space-md); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .subnav__link, .chip__quitar, .cargo__resumen, .cargo__flecha { transition: none; }
+}

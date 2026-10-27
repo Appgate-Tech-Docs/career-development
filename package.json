@@ -1,0 +1,16 @@
+{
+  "name": "career-development",
+  "private": true,
+  "type": "module",
+  "description": "Desarrollo de Carrera: front en GitHub Pages, datos en Excel, lógica en un Office Script ejecutado por Power Automate.",
+  "scripts": {
+    "compilar": "tsc -p servidor/tsconfig.json",
+    "local": "npm run compilar && node herramientas/servidor-local.mjs",
+    "probar": "npm run compilar && node --test herramientas/pruebas.test.mjs",
+    "excel": "python herramientas/generar_excel.py"
+  },
+  "devDependencies": {
+    "exceljs": "^4.4.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>Desarrollo de Carrera · Appgate</title>
+<meta name="description" content="Evaluación por cargo y planes de desarrollo.">
+
+<!-- Tipografías servidas desde el propio sitio: ninguna petición a terceros.
+     Este archivo no contiene datos de nadie; todo llega del flujo tras entrar. -->
+<link rel="stylesheet" href="styles/fuentes-incrustadas.css">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/mvp.css">
+<link rel="stylesheet" href="styles/graficas.css">
+<link rel="stylesheet" href="styles/admin.css">
+</head>
+<body>
+
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+<header class="app-header">
+  <div class="container app-header__inner">
+    <a class="app-header__brand" href="#/">
+      <span class="app-header__mark" aria-hidden="true">DC</span>
+      <span>Desarrollo de Carrera</span>
+    </a>
+    <nav class="app-nav" id="nav" aria-label="Secciones"></nav>
+    <div class="usuario" id="usuario" hidden></div>
+  </div>
+</header>
+
+<main id="contenido" class="container page" tabindex="-1">
+  <div class="skeleton skeleton--kpi" aria-hidden="true"></div>
+  <p class="sr-only" role="status">Cargando…</p>
+</main>
+
+<footer class="app-footer">
+  <div class="container app-footer__inner">
+    <span id="pie-ronda"></span>
+  </div>
+</footer>
+
+<script type="module">
+import { icon, esc, toast, withBusy } from './lib/ui.js';
+import { ocultarTooltip } from './lib/graficas.js';
+import {
+  iniciar, sesion, salir, ronda, ROLES, pendientes, descartarSesion,
+} from './lib/almacen.js';
+import { ruta, configurar, iniciarRuteo, ir, resolver } from './lib/ruteo.js';
+
+import { vistaEntrar } from './vistas/entrar.js';
+import { vistaInicio } from './vistas/inicio.js';
+import { vistaMiDesarrollo, vistaPersona } from './vistas/perfil.js';
+import { vistaEvaluar } from './vistas/evaluar.js';
+import { vistaEquipo } from './vistas/equipo.js';
+import { vistaPlan } from './vistas/plan.js';
+import { vistaCatalogo } from './vistas/catalogo.js';
+import { vistaOrganizacion } from './vistas/organizacion.js';
+import {
+  vistaAdminPersonas, vistaAdminEquipos, vistaAdminCargos, vistaAdminPares,
+  vistaAdminAuditoria, vistaAdminRonda,
+} from './vistas/admin.js';
+
+const el = (id) => document.getElementById(id);
+
+/* ------------------------------------------------------------------- rutas */
+
+ruta('#/entrar', vistaEntrar, { publica: true });
+ruta('#/', vistaInicio);
+ruta('#/mi-desarrollo', vistaMiDesarrollo, { requiere: 'cargo' });
+ruta('#/autoevaluacion', ({ sesion: s }) => vistaEvaluar({ sesion: s, params: { id: s.persona.id } }),
+     { requiere: 'cargo' });
+ruta('#/evaluar/:id', vistaEvaluar);
+ruta('#/equipo', vistaEquipo, { rol: 'lider' });
+ruta('#/persona/:id', vistaPersona);
+ruta('#/plan/:id', vistaPlan);
+ruta('#/organizacion', vistaOrganizacion, { rol: 'admin' });
+ruta('#/admin/catalogo', vistaCatalogo, { rol: 'admin' });
+ruta('#/admin/personas', vistaAdminPersonas, { rol: 'admin' });
+ruta('#/admin/equipos', vistaAdminEquipos, { rol: 'admin' });
+ruta('#/admin/cargos', vistaAdminCargos, { rol: 'admin' });
+ruta('#/admin/pares', vistaAdminPares, { rol: 'admin' });
+ruta('#/admin/auditoria', vistaAdminAuditoria, { rol: 'admin' });
+ruta('#/admin/ronda', vistaAdminRonda, { rol: 'admin' });
+
+/* --------------------------------------------------------------- navegación */
+
+/**
+ * El menú se arma según lo que la persona puede hacer. Un enlace que lleva a
+ * una pantalla sin permiso es peor que no tenerlo: enseña a desconfiar del menú.
+ * (Y no es seguridad: el servidor no entrega lo que no corresponde.)
+ */
+function enlacesDe(s) {
+  const enlaces = [{ href: '#/', label: 'Inicio' }];
+  const roles = s.persona.roles;
+  if (s.persona.cargo_id) enlaces.push({ href: '#/mi-desarrollo', label: 'Mi desarrollo' });
+  if (roles.includes('lider')) enlaces.push({ href: '#/equipo', label: 'Mi equipo' });
+  if (roles.includes('admin')) {
+    enlaces.push({ href: '#/organizacion', label: 'Organización' });
+    enlaces.push({ href: '#/admin/personas', label: 'Administración', prefijo: ['#/admin/'] });
+  }
+  return enlaces;
+}
+
+/** 'page' si es exactamente esta pantalla; 'true' si es una de su sección. */
+function actual(l, hash) {
+  if (hash === l.href) return 'page';
+  return (l.prefijo ?? []).some((p) => hash.startsWith(p)) ? 'true' : null;
+}
+
+function pintarCarcasa() {
+  const s = sesion();
+  el('pie-ronda').textContent = s && ronda() ? `Ronda ${ronda().nombre}${ronda().abierta ? '' : ' · cerrada'}` : '';
+
+  if (!s) {
+    el('nav').innerHTML = '';
+    el('usuario').hidden = true;
+    return;
+  }
+
+  const abiertas = pendientes(s.persona.id).length;
+  const hash = location.hash || '#/';
+
+  el('nav').innerHTML = enlacesDe(s).map((l) => `
+    <a class="app-nav__link" href="${l.href}"
+       ${actual(l, hash) ? `aria-current="${actual(l, hash)}"` : ''}>${esc(l.label)}</a>`).join('');
+
+  el('usuario').hidden = false;
+  el('usuario').innerHTML = `
+    <span class="usuario__nombre">
+      ${esc(s.persona.nombre)}
+      <span class="usuario__rol">${esc(
+        s.persona.roles.map((r) => ROLES[r]?.label).filter(Boolean).join(' · '))}${
+        abiertas ? ` · ${abiertas} pendiente${abiertas === 1 ? '' : 's'}` : ''}</span>
+    </span>
+    <button type="button" class="btn btn--ghost btn--sm" id="btn-salir">Salir</button>`;
+
+  el('btn-salir').addEventListener('click', async (ev) => {
+    await withBusy(ev.currentTarget, () => salir());
+    ir('#/entrar');
+    pintarCarcasa();
+  });
+}
+
+/* ---------------------------------------------------------------- arranque */
+
+configurar({
+  montarEn: el('contenido'),
+
+  // Guardas en un solo lugar. Ninguna vista consulta la sesión ni decide si
+  // hay permiso: llega resuelto o no llega.
+  alEntrar(r) {
+    const s = sesion();
+    if (!s) return r.publica ? {} : { redirigir: '#/entrar' };
+    if (r.publica) return { redirigir: '#/' };
+    if (r.rol && !s.persona.roles.includes(r.rol)) return { redirigir: '#/' };
+    if (r.requiere === 'cargo' && !s.persona.cargo_id) return { redirigir: '#/' };
+    return { sesion: s };
+  },
+
+  alSalir() { ocultarTooltip(); pintarCarcasa(); },
+});
+
+document.addEventListener('cdp:cambio', pintarCarcasa);
+
+// El servidor dijo que la sesión venció (o la cerraron desde administración).
+// Puede llegar de varias peticiones a la vez: se atiende una sola. Se cierra
+// cualquier diálogo abierto —si no, queda encima del ingreso, inerte— y se
+// recuerda dónde estaba la persona para volver ahí al entrar.
+let terminando = false;
+document.addEventListener('cdp:sesion-terminada', () => {
+  if (terminando) return;
+  terminando = true;
+  document.querySelectorAll('dialog[open]').forEach((d) => d.close());
+  const donde = location.hash;
+  if (donde && donde !== '#/entrar') {
+    try { sessionStorage.setItem('cdp.volver-a', donde); } catch { /* se vuelve al inicio */ }
+  }
+  descartarSesion();
+  pintarCarcasa();
+  toast('Tu sesión terminó. Vuelve a entrar con tu correo; lo que no alcanzaste a guardar se perdió.', 'info');
+  ir('#/entrar');
+  setTimeout(() => { terminando = false; }, 1000);
+});
+
+// El cambio se guardó pero la vista no se pudo actualizar (red, límite).
+document.addEventListener('cdp:recarga-fallida', () => {
+  toast('El cambio quedó guardado, pero la pantalla no se pudo actualizar. Recarga la página para ver lo último.', 'info', { timeout: 0 });
+});
+
+iniciar().then(() => {
+  pintarCarcasa();
+  iniciarRuteo();
+}).catch((error) => {
+  console.error(error);
+  el('contenido').innerHTML = `
+    <div class="callout callout--danger" role="alert">
+      ${icon('alert')}
+      <span>No se pudo conectar con el servidor. ${esc(error.message ?? '')}</span>
+    </div>
+    <button type="button" class="btn btn--secondary" id="reintentar">Reintentar</button>`;
+  el('reintentar').addEventListener('click', () => location.reload());
+});
+
+// Tras un cambio de administración el dato se recargó: se repinta la pantalla
+// actual con él, sin perder el lugar ni el foco.
+document.addEventListener('cdp:cambio', (e) => { if (e.detail?.que === 'recarga') resolver({ conservar: true }); });
+</script>
+</body>
+</html>

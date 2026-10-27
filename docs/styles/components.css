@@ -1,0 +1,1528 @@
+/* ==========================================================================
+   COMPONENTS — Career Development Portal
+   Depends on tokens.css + base.css.
+
+   Every component here is documented in components.html (living reference).
+   Rules this file holds itself to:
+     · No raw pixel values outside the token set.
+     · No `border-left: Npx solid` as a default card treatment.
+     · Every interactive element ships default/hover/active/focus/disabled.
+     · Nothing communicates state through color alone.
+   ========================================================================== */
+
+/* ==========================================================================
+   APP SHELL
+   ========================================================================== */
+
+.app-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.app-header__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 60px;
+  flex-wrap: wrap;
+}
+
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-heading);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.app-header__brand:hover { color: var(--color-text-heading); }
+
+.app-header__mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-active);
+  color: var(--color-text-inverse);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.app-nav {
+  display: flex;
+  gap: var(--space-3xs);
+  flex-wrap: wrap;
+  margin-inline-start: auto;
+}
+
+.app-nav__link {
+  display: inline-flex;
+  align-items: center;
+  /* Full target height at every breakpoint, not only under 40rem. */
+  min-height: var(--target-min);
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-in-out),
+              color var(--duration-fast) var(--ease-in-out);
+}
+
+.app-nav__link:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-heading);
+}
+
+/* Current page carries a weight change and an underline bar, not just color —
+   the same reason links are underlined. aria-current supplies the semantics. */
+.app-nav__link[aria-current="page"] {
+  color: var(--color-text-heading);
+  font-weight: var(--weight-semibold);
+  box-shadow: inset 0 -2px 0 var(--color-primary);
+}
+
+/* ==========================================================================
+   PAGE HEADER
+   ========================================================================== */
+
+.page-header { margin-bottom: var(--space-lg); }
+
+.page-header__title { margin-bottom: var(--space-3xs); }
+
+.page-header__lede {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  max-width: 60ch;
+}
+
+.section {
+  margin-top: var(--space-xl);
+}
+
+.section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-sm);
+}
+
+.section__title { font-size: var(--text-xl); }
+
+.section__note {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  max-width: 70ch;
+  margin-top: var(--space-3xs);
+  margin-bottom: var(--space-sm);
+}
+
+/* ==========================================================================
+   BUTTON
+   Variants: --primary --secondary --ghost --danger   Sizes: --sm (default md)
+   ========================================================================== */
+
+.btn {
+  /* Inline-flex + gap so an icon and label center on each other without
+     magic margins. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  min-height: var(--target-min);
+  padding: 0 var(--space-md);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--duration-base) var(--ease-in-out),
+              border-color var(--duration-base) var(--ease-in-out),
+              color var(--duration-base) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
+}
+
+/* Presses down 1px. Cheap, and it makes the button feel physical. */
+.btn:active:not(:disabled) { transform: translateY(1px); }
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+  /* Suppressing hover on a disabled control matters: a button that lights up
+     but does nothing on click reads as broken rather than as unavailable. */
+  transform: none;
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+.btn--primary:hover:not(:disabled)  { background: var(--color-primary-hover); }
+.btn--primary:active:not(:disabled) { background: var(--color-primary-active); }
+
+.btn--secondary {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-heading);
+}
+.btn--secondary:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+}
+.btn--secondary:active:not(:disabled) { background: var(--color-border); }
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-primary-text);
+}
+.btn--ghost:hover:not(:disabled) { background: var(--color-info-subtle); }
+
+.btn--danger {
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+}
+.btn--danger:hover:not(:disabled) { background: var(--color-danger-text); }
+
+.btn--sm {
+  min-height: 32px;
+  padding: 0 var(--space-xs);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+}
+
+.btn--block { width: 100%; }
+
+/* Loading. The spinner replaces the label rather than sitting beside it, so
+   the button does not resize mid-action and shift the layout around it.
+   Pair with `disabled` + `aria-busy="true"` in JS — see lib/ui.js setBusy(). */
+.btn[aria-busy="true"] {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.btn[aria-busy="true"]::after {
+  content: "";
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-block-start-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  /* currentColor is transparent above, so the ring needs its own color. */
+  border-color: rgb(255 255 255 / 0.4);
+  border-block-start-color: #FFFFFF;
+}
+
+.btn--secondary[aria-busy="true"]::after,
+.btn--ghost[aria-busy="true"]::after {
+  border-color: var(--color-border);
+  border-block-start-color: var(--color-primary);
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.btn-group {
+  display: flex;
+  gap: var(--space-2xs);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ==========================================================================
+   CARD / PANEL
+   Separation comes from a thin all-around border plus a whisper of shadow.
+   Deliberately NOT `border-radius + border-left: 4px solid` — that pattern is
+   reserved for genuine semantic emphasis (see .callout).
+   ========================================================================== */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.card--flush { padding: 0; overflow: hidden; }
+.card--sunken { background: var(--color-surface-sunken); box-shadow: none; }
+
+.card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-sm);
+}
+
+.card__title { font-size: var(--text-base); font-weight: var(--weight-semibold); }
+.card__meta  { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+/* Callout — THIS is where a left border is earned: it marks a genuine
+   semantic aside, and the accent color is doing real work. */
+.callout {
+  display: flex;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-inline-start: 3px solid var(--color-info);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--color-info-subtle);
+  font-size: var(--text-sm);
+}
+
+.callout--warning { border-inline-start-color: var(--color-warning); background: var(--color-warning-subtle); }
+.callout--danger  { border-inline-start-color: var(--color-danger);  background: var(--color-danger-subtle);  }
+.callout--success { border-inline-start-color: var(--color-success); background: var(--color-success-subtle); }
+
+/* ==========================================================================
+   KPI TILE
+   ========================================================================== */
+
+.kpi-grid {
+  display: grid;
+  /* auto-fit + minmax rather than flex:1 — tiles reflow to full width on
+     narrow screens instead of crushing to an unreadable column.
+     10.5rem rather than 9rem so the five-tile dashboard row breaks 3+2 at
+     tablet width instead of 4+1, which left a lone orphan tile. */
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: var(--space-sm);
+}
+
+.kpi {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.kpi__value {
+  display: block;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-text-heading);
+  letter-spacing: -0.02em;
+}
+
+.kpi__label {
+  display: block;
+  margin-top: var(--space-3xs);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.kpi--accent {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+.kpi--accent .kpi__value { color: var(--color-text-inverse); }
+.kpi--accent .kpi__label { color: var(--color-primary-subtle); }
+
+/* ==========================================================================
+   SCORE — value + segmented meter
+   ==========================================================================
+   The PoC signalled low/mid/high through text color alone, which is invisible
+   to roughly 8% of men, in grayscale, and in forced-colors mode. Three signals
+   here instead: the numeral, the count of filled segments (position/shape),
+   and color last. The sr-only span carries the whole thing as words.
+   ========================================================================== */
+
+.score {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.score__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  min-width: 2.25ch;
+  text-align: end;
+}
+
+.score__meter {
+  display: inline-flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* Empty segments are outlined, not tinted. A --color-border fill measured
+   1.27–1.46:1 against the three row backgrounds this meter sits on, so the
+   reference track was effectively invisible and "3 of 5 filled" read as an
+   ambiguous cluster. An outline at --color-border-strong (5.78:1) makes the
+   empty slots countable, which is the whole point of the meter. */
+.score__seg {
+  width: 4px;
+  height: 14px;
+  border-radius: 1px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+}
+
+/* Filled segments use the same token as the numeral, so the two readings of
+   the same value agree, and all three bands clear 3:1 on every background the
+   meter appears against (surface, hover, sunken, flagged row).
+   The brand fills --color-warning / --color-success measured 2.95:1 and
+   3.99:1 respectively; the -text variants measure 5.93:1 and 5.92:1. */
+.score[data-level="low"]  .score__value,
+.score[data-level="low"]  .score__seg.is-on { color: var(--color-danger-text);  }
+.score[data-level="mid"]  .score__value,
+.score[data-level="mid"]  .score__seg.is-on { color: var(--color-warning-text); }
+/* Valoración cualitativa de la hoja ESCALA (V6). Texto y no color: el color
+   del medidor da la zona, la palabra da la lectura exacta del instrumento. */
+.score__concepto {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.score[data-level="high"] .score__value,
+.score[data-level="high"] .score__seg.is-on { color: var(--color-success-text); }
+
+.score__seg.is-on {
+  background: currentColor;
+  box-shadow: none;
+}
+
+.score[data-level="none"] .score__value { color: var(--color-text-muted); }
+
+/* ==========================================================================
+   GAP — brecha real vs esperado
+   ==========================================================================
+   Cada severidad lleva glifo propio además del color, porque el color se pierde
+   en escala de grises, en impresión y en modo de alto contraste. El texto
+   ("En nivel", "Dos o más abajo") es la tercera señal.
+   ========================================================================== */
+
+.gap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: 2px var(--space-2xs);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.gap__icon { width: 0.8em; height: 0.8em; flex-shrink: 0; }
+
+.gap--supera {
+  background: var(--color-info-subtle);
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+}
+.gap--cumple {
+  background: var(--color-success-subtle);
+  border-color: var(--color-success);
+  color: var(--color-success-text);
+}
+.gap--leve {
+  background: var(--color-warning-subtle);
+  border-color: var(--color-warning);
+  color: var(--color-warning-text);
+}
+.gap--critica {
+  background: var(--color-danger-subtle);
+  border-color: var(--color-danger);
+  color: var(--color-danger-text);
+}
+/* Sin referencia NO es "cumple": es desconocido, y se ve neutro a propósito
+   para que nadie lo lea como una aprobación. */
+.gap--sin-ref {
+  background: var(--color-surface-sunken);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   SCORE TOTAL — el número nunca va solo
+   ==========================================================================
+   Medido con datos reales: alguien en 44.88 puede cumplir 18 de 18 y alguien en
+   70.00 cumplir 3 de 18. Mostrar solo la cifra invita a la conclusión contraria,
+   así que el cumplimiento es parte del componente, no un añadido opcional.
+   ========================================================================== */
+
+.score-total { display: grid; gap: var(--space-3xs); }
+
+.score-total__cifra {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2xs);
+  flex-wrap: wrap;
+}
+
+.score-total__num {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-text-heading);
+  letter-spacing: -0.02em;
+}
+
+.score-total__cumple { font-size: var(--text-xs); color: var(--color-text-muted); }
+.score-total__cumple b { color: var(--color-text); }
+
+/* Proximidad a un borde de banda. Más evaluadores no lo arreglan — es
+   discretización, no ruido — así que lo único honesto es decirlo. */
+.score-total__umbral {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3xs);
+  margin-top: var(--space-3xs);
+  padding: var(--space-3xs) var(--space-2xs);
+  border-inline-start: 3px solid var(--color-warning);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--color-warning-subtle);
+  font-size: var(--text-xs);
+  color: var(--color-warning-text);
+  max-width: 46ch;
+}
+
+.score-total__umbral svg { width: 1em; height: 1em; flex-shrink: 0; margin-top: 0.15em; }
+
+/* ==========================================================================
+   AVISOS — lo que el tablero tiene que decirle al líder
+   ========================================================================== */
+
+.avisos {
+  display: grid;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-inline-start-width: 3px;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+}
+
+.aviso__icon { width: 1.1em; height: 1.1em; flex-shrink: 0; margin-top: 0.1em; }
+
+.aviso--alta {
+  border-inline-start-color: var(--color-danger);
+  background: var(--color-danger-subtle);
+  color: var(--color-danger-text);
+}
+.aviso--media {
+  border-inline-start-color: var(--color-warning);
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-text);
+}
+.aviso--baja {
+  border-inline-start-color: var(--color-border-strong);
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+}
+
+/* ==========================================================================
+   BADGE
+   ========================================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: 2px var(--space-2xs);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.badge--neutral {
+  background: var(--color-surface-sunken);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.badge--info {
+  background: var(--color-info-subtle);
+  border-color: var(--color-primary-subtle);
+  color: var(--color-primary-text);
+}
+
+/* Carries an icon as well as a fill — in forced-colors mode the fill is
+   dropped and the glyph is all that survives. */
+.badge--success {
+  background: var(--color-success-subtle);
+  border-color: var(--color-success);
+  color: var(--color-success-text);
+}
+
+.badge--warning {
+  background: var(--color-warning-subtle);
+  border-color: var(--color-warning);
+  color: var(--color-warning-text);
+}
+
+.badge__icon { width: 0.75em; height: 0.75em; flex-shrink: 0; }
+
+/* ==========================================================================
+   TABLE
+   ========================================================================== */
+
+/* Wrapper owns the horizontal scroll so the page body never scrolls sideways.
+   Keyboard reachability is NOT handled here — it needs a tabindex that exists
+   only while the box actually overflows, which is applied at runtime by
+   observarScrollables() in lib/ui.js. Every .table-wrap must be covered by that
+   call; a comment claiming otherwise once left three tables unreachable. */
+.table-wrap {
+  /* Bloque contenedor de lo que va posicionado adentro. Sin esto, los .sr-only
+     de las celdas (position: absolute) se ubicaban respecto de la página y no de
+     la tabla: se salían del contenedor con scroll y el documento medía 670 px en
+     una pantalla de 375. Solo no se veía porque el body recorta el desborde. */
+  position: relative;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  /* Per spec, overflow-x:auto forces overflow-y to compute to auto as well,
+     which clips descendant outlines at the padding box. The focus ring on a
+     .btn--primary needs 9px (2px outline + 2px offset + 5px shadow spread), so
+     the block padding keeps rings near the edges from being cut off. */
+  padding-block: var(--space-3xs);
+}
+
+/* Sticky headers resolve against the nearest scrolling ancestor, which is this
+   wrapper. Without a height bound the wrapper never scrolls vertically, so the
+   sticky `th` below had zero effect and the headers scrolled away with the
+   page — the exact problem the rule was written to prevent. A max-height gives
+   the wrapper a real vertical scroll context; short tables never reach it, so
+   no nested scrollbar appears until the table is actually long.
+   Not applied below 40rem, where `th` is deliberately static. */
+@media (min-width: 40.0625rem) {
+  .table-wrap--sticky { max-height: 70vh; overflow-y: auto; }
+  .table-wrap--sticky .table th { position: sticky; top: 0; z-index: 1; }
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table caption {
+  padding: var(--space-xs) var(--space-sm);
+  text-align: start;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  padding: var(--space-2xs) var(--space-xs);
+  background: var(--color-surface-sunken);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: var(--space-2xs) var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td { border-bottom: none; }
+
+.table__row:hover { background: var(--color-surface-hover); }
+
+/* Highlighted row (e.g. top performer). The tint is a supporting cue only —
+   the row must also carry a badge, because a background tint alone disappears
+   in grayscale and forced-colors. */
+.table__row--flagged { background: var(--color-success-subtle); }
+.table__row--flagged:hover { background: #DCEEE4; }
+
+/* Fila que pide atención: brechas críticas, habilidades sin sus cuatro niveles.
+   Ámbar y no el verde de --flagged: el verde es el resaltado de "destacado" del
+   prototipo, y usarlo para marcar un problema dice lo contrario. La fila lleva
+   además el motivo escrito, así que el color no es la única señal. */
+.table__row--atencion { background: var(--color-warning-subtle); }
+.table__row--atencion:hover { background: var(--color-warning-subtle-hover); }
+
+.table__cell--numeric { text-align: end; }
+.table__cell--tight   { width: 1%; white-space: nowrap; }
+
+/* Row expander. The PoC put a click handler on <tr>, which is unreachable by
+   keyboard and invisible to assistive tech. A real <button> inside the first
+   cell fixes both, and aria-expanded/aria-controls announce the relationship. */
+.row-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  /* Full target height at every breakpoint — it measured 43px on single-line
+     rows, one pixel under the floor this portal claims to hold. */
+  min-height: var(--target-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-heading);
+  text-align: start;
+  cursor: pointer;
+}
+
+.row-toggle:hover { color: var(--color-primary-text); }
+
+.row-toggle__chevron {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform var(--duration-base) var(--ease-in-out);
+}
+
+.row-toggle[aria-expanded="true"] .row-toggle__chevron { transform: rotate(90deg); }
+
+.table__detail > td {
+  padding: 0;
+  background: var(--color-surface-sunken);
+}
+
+/* The detail panel is a FORM, not tabular data, so it must not inherit the
+   table's intrinsic width. At 375px the team table is ~613px wide inside a
+   342px viewport, which pushed the mentor form's second column entirely
+   off-screen — a WCAG 1.4.10 Reflow failure, since reaching a form field
+   required scrolling a table sideways.
+
+   sticky + inset-inline-start:0 pins the panel to the left edge of the
+   scroller, and the width clamp keeps it inside the visible band rather than
+   the scrollable one. */
+.table__detail__inner {
+  position: sticky;
+  inset-inline-start: 0;
+  width: min(100%, calc(100vw - 2 * var(--layout-gutter)));
+  padding: var(--space-sm) var(--space-md);
+}
+
+/* ==========================================================================
+   DEFINITION ROWS (skill detail inside an expanded row)
+   ========================================================================== */
+
+.dl-rows { display: grid; gap: 1px; background: var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
+
+.dl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-2xs) var(--space-xs);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  flex-wrap: wrap;
+}
+
+.dl-row__term { font-weight: var(--weight-medium); }
+
+.dl-row__values {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  flex-wrap: wrap;
+}
+
+.dl-row__values b { color: var(--color-text); font-weight: var(--weight-semibold); }
+
+/* ==========================================================================
+   FORM
+   ========================================================================== */
+
+.field { display: block; margin-bottom: var(--space-sm); }
+
+.field__label {
+  display: block;
+  margin-bottom: var(--space-3xs);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-heading);
+}
+
+/* Required is marked with a word, not only an asterisk or a color. */
+.field__required {
+  margin-inline-start: var(--space-3xs);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-regular);
+  color: var(--color-text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.field__hint {
+  margin-top: var(--space-3xs);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-height: var(--target-min);
+  padding: var(--space-2xs) var(--space-xs);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--text-base);
+  color: var(--color-text);
+  transition: border-color var(--duration-base) var(--ease-in-out),
+              box-shadow var(--duration-base) var(--ease-in-out);
+}
+
+.input:hover:not(:disabled),
+.select:hover:not(:disabled),
+.textarea:hover:not(:disabled) { border-color: var(--color-primary); }
+
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+  border-color: var(--color-primary);
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: 1px;
+}
+
+.input:disabled,
+.select:disabled,
+.textarea:disabled {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.textarea { min-height: 6rem; resize: vertical; line-height: var(--leading-normal); }
+
+/* Native select arrow varies wildly across platforms; a consistent one keeps
+   the control from looking foreign next to the text inputs. */
+.select {
+  appearance: none;
+  padding-inline-end: var(--space-lg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%235E657D' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-xs) center;
+}
+
+/* Error state: red border AND an icon AND a message tied to the field via
+   aria-describedby. Border color alone would be a WCAG 1.4.1 failure. */
+.field--error .input,
+.field--error .select,
+.field--error .textarea {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 1px var(--color-danger);
+}
+
+.field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3xs);
+  margin-top: var(--space-3xs);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-danger-text);
+}
+
+.field__error:empty { display: none; }
+
+.field__error svg { width: 0.9em; height: 0.9em; flex-shrink: 0; margin-top: 0.15em; }
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-sm);
+}
+
+/* ==========================================================================
+   MODAL — native <dialog>
+   ==========================================================================
+   Using <dialog>.showModal() rather than a div overlay buys focus trapping,
+   Escape-to-close, inert background, and correct role semantics from the
+   platform. The PoC's div overlay had none of those.
+   ========================================================================== */
+
+.modal {
+  width: min(28rem, calc(100vw - 2 * var(--space-sm)));
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+}
+
+.modal::backdrop { background: var(--color-overlay); }
+
+.modal__body { padding: var(--space-md); }
+
+.modal__title { font-size: var(--text-lg); margin-bottom: var(--space-3xs); }
+
+.modal__lede {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2xs);
+  margin-top: var(--space-md);
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   TOAST / STATUS
+   Rendered into a role="status" live region so changes are announced without
+   stealing focus. Errors use role="alert" (assertive) instead.
+   ========================================================================== */
+
+.toast-region {
+  position: fixed;
+  inset-block-end: var(--space-sm);
+  inset-inline-end: var(--space-sm);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  max-width: min(24rem, calc(100vw - 2 * var(--space-sm)));
+  pointer-events: none;
+}
+
+/* Two sibling live regions (polite / assertive) live inside the wrapper — see
+   toastRegions() in lib/ui.js for why they must not be nested. */
+.toast-region > [data-live] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.toast-region > [data-live]:empty { display: none; }
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  pointer-events: auto;
+  animation: toast-in var(--duration-slow) var(--ease-out);
+}
+
+.toast--success { border-color: var(--color-success); background: var(--color-success-subtle); color: var(--color-success-text); }
+.toast--error   { border-color: var(--color-danger);  background: var(--color-danger-subtle);  color: var(--color-danger-text);  }
+
+.toast__icon { width: 1.1em; height: 1.1em; flex-shrink: 0; margin-top: 0.1em; }
+
+.toast__text { flex: 1; }
+
+/* Persistent toasts (errors) must be dismissible — without this, two failed
+   saves pin permanent cards over the bottom of the viewport until a reload. */
+.toast__close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: -0.2rem -0.3rem 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity var(--duration-fast) var(--ease-in-out),
+              background var(--duration-fast) var(--ease-in-out);
+}
+
+.toast__close:hover { opacity: 1; background: rgb(8 19 57 / 0.08); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(var(--space-2xs)); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ==========================================================================
+   EMPTY / LOADING / ERROR STATES
+   The PoC rendered a blank table when a query returned nothing. A blank
+   surface is indistinguishable from a broken one, so each has a real state.
+   ========================================================================== */
+
+.state {
+  display: grid;
+  place-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-xl) var(--space-md);
+  text-align: center;
+}
+
+.state__icon { width: 2rem; height: 2rem; color: var(--color-text-muted); }
+.state__title { font-size: var(--text-base); font-weight: var(--weight-semibold); color: var(--color-text-heading); }
+.state__body { font-size: var(--text-sm); color: var(--color-text-muted); max-width: 40ch; }
+
+/* Skeleton placeholder for content in flight. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-sunken) 25%,
+    var(--color-border) 50%,
+    var(--color-surface-sunken) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+.skeleton--text { height: 1em; margin-block: 0.25em; }
+.skeleton--kpi  { height: 5.5rem; border-radius: var(--radius-lg); }
+.skeleton--row  { height: 2.5rem; margin-bottom: 1px; }
+
+/* ==========================================================================
+   CHART
+   Fixed aspect ratio via the wrapper so a Chart.js canvas cannot grow without
+   bound during resize, which is a known Chart.js failure mode.
+   ========================================================================== */
+
+.chart {
+  position: relative;
+  width: 100%;
+  max-width: 42rem;
+  height: clamp(14rem, 40vw, 20rem);
+}
+
+.chart canvas { width: 100% !important; height: 100% !important; }
+
+/* A chart is an image to assistive tech. Every .chart must be paired with a
+   .chart__table holding the same numbers — visually hidden is fine, but the
+   data has to exist in text somewhere. */
+.chart__fallback { margin-top: var(--space-2xs); font-size: var(--text-xs); }
+
+/* ==========================================================================
+   APP FOOTER
+   ========================================================================== */
+
+.app-footer {
+  margin-top: var(--space-2xl);
+  padding-block: var(--space-md);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.app-footer__inner { display: grid; gap: var(--space-3xs); }
+
+/* ==========================================================================
+   CHOICE CARDS — radio group styled as cards
+   ==========================================================================
+   Used for the wizard's four levels and for the peer modality picker.
+
+   The radio input stays VISIBLE rather than being hidden behind a styled card.
+   Two reasons: the selected state is then carried by the control itself instead
+   of by border color alone, and nothing can go wrong with focus — the PoC's
+   clickable <div>s were unreachable by keyboard entirely.
+   ========================================================================== */
+
+.choices {
+  display: grid;
+  gap: var(--space-2xs);
+  /* fieldset defaults */
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-inline-size: 0;
+}
+
+.choices--inline { grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color var(--duration-base) var(--ease-in-out),
+              background var(--duration-base) var(--ease-in-out);
+}
+
+.choice:hover { border-color: var(--color-primary); background: var(--color-canvas); }
+
+.choice__input {
+  flex-shrink: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0.1rem 0 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* :has() keeps the selected style on the card without a JS class. The radio
+   itself already shows state, so browsers without :has() lose only the tint. */
+.choice:has(.choice__input:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-info-subtle);
+}
+
+/* The ring goes on the card, not the 18px dot, so it is actually visible. */
+.choice:has(.choice__input:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.choice__body { display: grid; gap: 2px; }
+.choice__name { font-weight: var(--weight-semibold); color: var(--color-text-heading); }
+.choice__desc { font-size: var(--text-sm); color: var(--color-text); line-height: var(--leading-snug); }
+
+/* ==========================================================================
+   WIZARD
+   ========================================================================== */
+
+.wizard { max-width: var(--layout-max-narrow); margin-inline: auto; }
+
+.wizard__progress { margin-bottom: var(--space-md); }
+
+.wizard__progress-label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-3xs);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Native <progress> needs per-engine pseudo-elements to restyle. Worth it:
+   the element carries its own value semantics, so no ARIA is required. */
+.wizard__bar {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 6px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-sunken);
+  color: var(--color-primary);
+  overflow: hidden;
+}
+
+.wizard__bar::-webkit-progress-bar { background: var(--color-surface-sunken); border-radius: var(--radius-full); }
+.wizard__bar::-webkit-progress-value {
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: inline-size var(--duration-slow) var(--ease-out);
+}
+.wizard__bar::-moz-progress-bar { background: var(--color-primary); border-radius: var(--radius-full); }
+
+.wizard__card { margin-bottom: var(--space-sm); }
+
+.wizard__skill {
+  font-size: var(--text-xl);
+  margin: var(--space-3xs) 0 var(--space-2xs);
+}
+
+/* Focused programmatically on each step change, so the ring must not read as an
+   error — it is a landing point, not a control. */
+.wizard__skill:focus-visible { outline-offset: 4px; }
+
+.wizard__desc {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
+  max-width: 60ch;
+}
+
+.wizard__nav {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+}
+
+/* --- Paso de revisión ----------------------------------------------------- */
+
+.wizard__titulo-revision { margin-bottom: var(--space-xs); }
+.wizard__aviso { margin-bottom: var(--space-sm); }
+
+/* El nombre de la habilidad es encabezado de fila por semántica, pero no debe
+   verse como los encabezados de columna (versalitas, fondo hundido). */
+/* Encabezado de fila de cualquier tabla (`.table__rowhead`); el nombre viejo
+   queda por las tablas del asistente que lo usan. */
+.table th.table__rowhead,
+.table th.wizard__fila-habilidad {
+  background: none;
+  font-size: inherit;
+  font-weight: var(--weight-medium);
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-text);
+  vertical-align: middle;
+}
+.table tbody tr:last-child th.wizard__fila-habilidad,
+.table tbody tr:last-child th.table__rowhead { border-bottom: none; }
+
+/* «Cambiar» se repite en cada fila: en el azul del ghost competía con la
+   insignia del nivel, que es el dato que se está confirmando. Queda en gris y
+   toma el azul solo cuando se va a usar. */
+.btn--ghost.wizard__cambiar { color: var(--color-text-muted); }
+.btn--ghost.wizard__cambiar:hover:not(:disabled),
+.btn--ghost.wizard__cambiar:focus-visible { color: var(--color-primary-text); }
+
+/* La barra de envío acompaña el recorrido de la tabla. Fondo del lienzo para
+   que las filas no se transparenten por debajo al pasar. */
+.wizard__nav--fija {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  align-items: center;
+  padding-block: var(--space-xs);
+  background: var(--color-canvas);
+  border-top: 1px solid var(--color-border);
+}
+
+.wizard__conteo { font-size: var(--text-sm); color: var(--color-text-muted); }
+.wizard__conteo strong { color: var(--color-success-text); }
+.wizard__conteo--incompleto strong { color: var(--color-warning-text); }
+
+.wizard__hint { margin-top: var(--space-sm); text-align: center; }
+
+/* ==========================================================================
+   ROLE CARDS — the home page's audience router
+   ========================================================================== */
+
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: var(--space-sm);
+}
+
+.role-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.role-card__icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  background: var(--color-info-subtle);
+  color: var(--color-primary-text);
+}
+
+.role-card__title { font-size: var(--text-lg); }
+
+.role-card__body {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  flex: 1;
+}
+
+.role-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  margin-top: var(--space-2xs);
+}
+
+/* Task links inside a role card. Not buttons — they navigate. */
+.task-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: var(--target-min);
+  padding: var(--space-3xs) var(--space-2xs);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-primary-text);
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-in-out);
+}
+
+.task-link:hover { background: var(--color-info-subtle); text-decoration: underline; }
+.task-link__arrow { margin-inline-start: auto; flex-shrink: 0; }
+
+/* ==========================================================================
+   PICKER — scrollable checkbox list (skills selection)
+   ========================================================================== */
+
+.picker {
+  max-height: 16rem;
+  overflow-y: auto;
+  padding: var(--space-2xs);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.picker__group { font-size: var(--text-2xs); font-weight: var(--weight-semibold);
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted);
+  margin: var(--space-2xs) 0 var(--space-3xs); }
+.picker__group:first-child { margin-top: 0; }
+
+.picker__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  /* 32px on a touch device is a repeated-miss target, and this list is how a
+     leader selects the skills a development plan is about. The taller row costs
+     scroll length inside a box that already scrolls. */
+  min-height: var(--target-min);
+  padding: var(--space-3xs) var(--space-2xs);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.picker__item:hover { background: var(--color-surface-hover); }
+.picker__item input { width: 1rem; height: 1rem; margin: 0; accent-color: var(--color-primary); flex-shrink: 0; }
+.picker__item:has(input:focus-visible) { outline: 2px solid var(--focus-ring-color); outline-offset: 1px; }
+
+/* ==========================================================================
+   REPEATER — add/remove row groups (deliverables)
+   ========================================================================== */
+
+.repeater { display: grid; gap: var(--space-2xs); }
+
+.repeater__row {
+  display: grid;
+  grid-template-columns: 1fr 11rem auto;
+  gap: var(--space-2xs);
+  align-items: start;
+}
+
+@media (max-width: 34rem) {
+  /* Title and remove button share row 1; the date wraps to row 2 beneath them.
+     The remove button is placed EXPLICITLY: leaving it to auto-placement sent it
+     to a third row, left-aligned under the date, so a list of three deliverables
+     showed three detached ✕ buttons interleaved with fields. */
+  .repeater__row {
+    grid-template-columns: 1fr var(--target-min);
+    grid-template-areas: "titulo quitar" "fecha fecha";
+  }
+  .repeater__row > :nth-child(1) { grid-area: titulo; }
+  .repeater__row > :nth-child(2) { grid-area: fecha; }
+  .repeater__row > .repeater__remove { grid-area: quitar; }
+}
+
+/* Icon-only remove button. Needs an accessible name naming WHICH row it
+   removes — "Quitar" alone is ambiguous in a list of five. */
+.repeater__remove {
+  display: grid;
+  place-items: center;
+  width: var(--target-min);
+  height: var(--target-min);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-danger-text);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-in-out),
+              border-color var(--duration-fast) var(--ease-in-out);
+}
+
+.repeater__remove:hover:not(:disabled) { background: var(--color-danger-subtle); border-color: var(--color-danger); }
+.repeater__remove:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ==========================================================================
+   PLAN CARD — development commitment
+   ========================================================================== */
+
+.plan {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Status is a top edge, not a left border, and always accompanied by a badge —
+   the stripe alone would be a color-only signal. */
+.plan--en-curso   { box-shadow: inset 0 3px 0 var(--color-warning), var(--shadow-sm); }
+.plan--completado { box-shadow: inset 0 3px 0 var(--color-success), var(--shadow-sm); }
+
+.plan__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2xs);
+}
+
+.plan__title { font-size: var(--text-base); font-weight: var(--weight-semibold); }
+.plan__meta { font-size: var(--text-xs); color: var(--color-text-muted); }
+.plan__chips { display: flex; flex-wrap: wrap; gap: var(--space-3xs); margin-block: var(--space-2xs); }
+
+.plan__deliverable {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+  flex-wrap: wrap;
+}
+
+.plan__deliverable:last-child { border-bottom: none; }
+.plan__deliverable-actions { display: flex; align-items: center; gap: var(--space-2xs); }
+.plan__deliverable-actions .select { width: auto; min-width: 9rem; min-height: 36px; font-size: var(--text-sm); }
+
+/* ==========================================================================
+   AUDIT LOG
+   ========================================================================== */
+
+.audit { display: grid; gap: 1px; background: var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
+
+.audit__row { background: var(--color-surface); padding: var(--space-2xs) var(--space-xs); font-size: var(--text-sm); }
+.audit__head { display: flex; align-items: baseline; gap: var(--space-2xs); flex-wrap: wrap; }
+.audit__skill { font-weight: var(--weight-semibold); color: var(--color-text-heading); }
+.audit__change { font-size: var(--text-xs); color: var(--color-text); margin-top: 2px; }
+.audit__meta { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 2px; }
+
+.modal--wide { width: min(44rem, calc(100vw - 2 * var(--space-sm))); }
+.modal__scroll { max-height: 60vh; overflow-y: auto; }
+
+/* ==========================================================================
+   TOOLBAR — search + filters above a table
+   ========================================================================== */
+
+.toolbar {
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-sm);
+}
+
+.toolbar .field { margin-bottom: 0; }
+.toolbar__grow { flex: 1 1 14rem; }
+
+.toolbar__check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: var(--target-min);
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.toolbar__check input { width: 1rem; height: 1rem; margin: 0; accent-color: var(--color-primary); }
+
+/* ==========================================================================
+   RESPONSIVE
+   ==========================================================================
+   The PoC shipped no viewport meta and no breakpoints, so it was unusable on
+   a phone. Order matters here: the base styles above are the narrow case, and
+   these only relax spacing upward.
+   ========================================================================== */
+
+@media (max-width: 40rem) {
+  .app-header__inner { min-height: 52px; padding-block: var(--space-2xs); }
+
+  /* nowrap is the point: with 44px links and flex-wrap on, five items stacked
+     onto two rows and the header ate 177px — 22% of an 812px viewport before any
+     content. It scrolls sideways within itself instead. */
+  .app-nav {
+    margin-inline-start: 0;
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    /* Keeps the last item from sitting flush against the viewport edge, which
+       reads as "nothing more to scroll to". */
+    padding-inline-end: var(--space-2xs);
+  }
+  .page { padding-block: var(--space-md) var(--space-xl); }
+  .section { margin-top: var(--space-lg); }
+
+  h1 { font-size: var(--text-xl); }
+  .kpi__value { font-size: var(--text-2xl); }
+
+  .btn { width: 100%; }
+  .btn--sm, .btn-group .btn { width: auto; }
+
+  /* --target-min is 44px and tokens.css calls it "the value this portal holds
+     itself to". These were the elements that did not: --sm buttons carry the
+     primary action of the mentor and framework flows, nav links are the whole
+     navigation, and the chart's <summary> was a 19px-tall strip that is the
+     only route to the chart data on a phone. */
+  .btn--sm { min-height: var(--target-min); }
+  .app-nav__link { min-height: var(--target-min); }
+  .app-header__brand { min-height: var(--target-min); }
+
+  summary {
+    display: flex;
+    align-items: center;
+    min-height: var(--target-min);
+  }
+}
+
+@media print {
+  .app-header, .app-nav, .btn, .toast-region { display: none !important; }
+  .card, .table-wrap { border-color: #999; box-shadow: none; break-inside: avoid; }
+  body { background: #FFFFFF; }
+}

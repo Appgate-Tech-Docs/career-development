@@ -1,0 +1,215 @@
+/* ==========================================================================
+   TOKENS — Career Development Portal
+   ==========================================================================
+   Two tiers, and the distinction matters:
+
+   TIER 1 — Brand primitives. The Appgate palette, verbatim. Source of truth.
+            Never reference these directly from a component.
+   TIER 2 — Semantic tokens. Named by ROLE, not by hue. Components use only
+            these. This is what makes re-theming and dark mode a token swap
+            instead of a find-and-replace across every file.
+
+   Every text/background pair below has a hand-verified WCAG contrast ratio
+   noted inline. Do not introduce a color without computing its ratio first.
+   ========================================================================== */
+
+:root {
+  /* ---------------------------------------------------------------------
+     TIER 1 — Appgate brand primitives (do not use directly in components)
+     --------------------------------------------------------------------- */
+  --appgate-navy:          #081339;
+  --appgate-blue-medium:   #0072BA;
+  --appgate-blue-bright:   #65BAE8;
+  --appgate-blue-light:    #A0DBEB;
+  --appgate-green-medium:  #109255;
+  --appgate-green-bright:  #85C54A;
+  --appgate-gray-dark:     #3B4053;
+  --appgate-gray-medium:   #8B91A9;
+  --appgate-gray-light:    #D0D5E7;
+  --appgate-gray-lightest: #EDEFF7;
+
+  /* Derived accessible variants.
+     The brand palette was built for print and large-format use; three of its
+     colors fail WCAG AA as body text on a light background. These darkened
+     variants preserve the brand hue while clearing 4.5:1. Derivation method:
+     hold hue and chroma in oklch, reduce lightness until the ratio passes,
+     then pin the result as hex so the value is verifiable and stable.
+
+       --appgate-gray-medium  #8B91A9 → 3.13:1  ✗   became #5E657D → 5.78:1 ✓
+       --appgate-green-medium #109255 → 3.99:1  ✗   became #0C7343 → 5.92:1 ✓
+     The palette has no red or amber, so semantic danger/warning are derived
+     at a lightness matched to the brand green, keeping the trio one family. */
+  --appgate-gray-muted:    #5E657D;  /* 5.78:1 on white */
+  --appgate-green-deep:    #0C7343;  /* 5.92:1 on white */
+  --appgate-red-deep:      #B02A20;  /* 6.57:1 on white */
+  --appgate-amber-deep:    #8A5A00;  /* 5.93:1 on white */
+
+  /* Pasos intermedios de la escala ordinal de las gráficas (Básico → Experto).
+     Mismo tono que el azul de marca, solo cambia la luz; validados con
+     validate_palette.js junto a --appgate-blue-bright y --appgate-blue-medium. */
+  --appgate-blue-mid:      #2E93D1;  /* 3.39:1 on white: borde de marca, no texto */
+  --appgate-blue-deep:     #004A7A;
+
+  /* ---------------------------------------------------------------------
+     TIER 2 — Semantic tokens (components use ONLY these)
+     --------------------------------------------------------------------- */
+
+  /* Surfaces. Layered light-to-dark: canvas < surface < sunken.
+     Canvas is a subtly toned off-white rather than pure #FFFFFF — softer,
+     and it lets white cards read as raised without needing a heavy shadow. */
+  --color-canvas:         #FAFBFD;
+  --color-surface:        #FFFFFF;
+  --color-surface-sunken: var(--appgate-gray-lightest);
+  --color-surface-hover:  var(--appgate-gray-lightest);
+  --color-overlay:        rgb(8 19 57 / 0.55);   /* navy-tinted, not pure black */
+
+  /* Text. Every value verified against --color-canvas (#FAFBFD). */
+  --color-text:          var(--appgate-gray-dark);    /*  9.92:1  body       */
+  --color-text-heading:  var(--appgate-navy);         /* 17.8:1   headings   */
+  --color-text-muted:    var(--appgate-gray-muted);   /*  5.58:1  secondary  */
+  --color-text-inverse:  #FAFAFA;                     /*  on primary fills; casi blanco, no #FFF */
+
+  /* Borders */
+  --color-border:        var(--appgate-gray-light);
+  --color-border-strong: var(--appgate-gray-muted);
+  --color-border-focus:  var(--appgate-blue-medium);
+
+  /* Primary action */
+  --color-primary:        var(--appgate-blue-medium);  /* 5.10:1 w/ white text */
+  --color-primary-hover:  #005C96;
+  --color-primary-active: var(--appgate-navy);
+  --color-primary-subtle: var(--appgate-blue-light);
+  --color-primary-text:   var(--appgate-blue-medium);  /* 5.10:1 on canvas     */
+
+  /* Semantic state. Each has a -text variant (passes AA as type) and a
+     -fill / -subtle variant (decorative, only needs 3:1 as a UI component). */
+  --color-success:        var(--appgate-green-medium);
+  --color-success-text:   var(--appgate-green-deep);
+  --color-success-subtle: #E8F5EE;
+
+  --color-warning:        #C98A00;
+  --color-warning-text:   var(--appgate-amber-deep);
+  --color-warning-subtle: #FDF4E3;
+  --color-warning-subtle-hover: #FAEBCC;
+
+  --color-danger:         #D4342A;
+  --color-danger-text:    var(--appgate-red-deep);
+  --color-danger-subtle:  #FDECEA;
+
+  --color-info:           var(--appgate-blue-medium);
+  --color-info-text:      var(--appgate-blue-medium);
+  --color-info-subtle:    #E7F3FA;
+
+  /* Data visualization. Ordered so adjacent series stay distinguishable in
+     grayscale and for the common colorblindness types — the sequence walks
+     lightness, not just hue. Chart.js and any SVG chart read from here. */
+  --color-chart-1: var(--appgate-blue-medium);
+  --color-chart-2: var(--appgate-green-medium);
+  --color-chart-3: var(--appgate-navy);
+  --color-chart-4: var(--appgate-blue-bright);
+  --color-chart-5: var(--appgate-green-bright);
+  --color-chart-6: var(--appgate-gray-muted);
+  --color-chart-grid: var(--appgate-gray-light);
+  --color-chart-axis: var(--appgate-gray-muted);
+
+  /* ---------------------------------------------------------------------
+     Typography
+     ---------------------------------------------------------------------
+     IBM Plex Sans, not Arial. Reasons, in order of weight:
+       1. Genuine tabular figures — this portal is tables and KPI numbers,
+          and Arial's proportional digits make columns of scores jitter.
+       2. Humanist-technical tone that fits an enterprise security company
+          without reading as a startup landing page.
+       3. Open source, self-hostable, no licensing question.
+     Plex Mono carries scores, dates, and IDs so numerals align in a column.
+     Override --font-sans here if brand guidelines specify a licensed face. */
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* Type scale — ~1.25 ratio, 16px base. Desktop-first data UI. */
+  --text-2xs:  0.6875rem;  /* 11px — uppercase micro-labels ONLY           */
+  --text-xs:   0.75rem;    /* 12px — table meta, captions                  */
+  --text-sm:   0.875rem;   /* 14px — dense UI, secondary copy              */
+  --text-base: 1rem;       /* 16px — body floor; never smaller for prose   */
+  --text-lg:   1.125rem;   /* 18px                                         */
+  --text-xl:   1.375rem;   /* 22px — section titles                        */
+  --text-2xl:  1.75rem;    /* 28px — page title                            */
+  --text-3xl:  2.25rem;    /* 36px — KPI values                            */
+
+  --leading-tight: 1.2;
+  --leading-snug:  1.35;
+  --leading-normal: 1.55;
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* ---------------------------------------------------------------------
+     Spacing — 4px base. Never write a raw pixel margin in a component.
+     --------------------------------------------------------------------- */
+  --space-3xs: 0.25rem;   /*  4px */
+  --space-2xs: 0.5rem;    /*  8px */
+  --space-xs:  0.75rem;   /* 12px */
+  --space-sm:  1rem;      /* 16px */
+  --space-md:  1.5rem;    /* 24px */
+  --space-lg:  2rem;      /* 32px */
+  --space-xl:  3rem;      /* 48px */
+  --space-2xl: 4rem;      /* 64px */
+
+  /* Radii */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-full: 999px;
+
+  /* Elevation — navy-tinted rather than black. Black shadows on a cool-gray
+     canvas read as dirty; tinting them to the brand navy keeps them clean. */
+  --shadow-sm: 0 1px 2px rgb(8 19 57 / 0.06);
+  --shadow-md: 0 2px 8px rgb(8 19 57 / 0.08);
+  --shadow-lg: 0 8px 24px rgb(8 19 57 / 0.12);
+
+  /* Motion. 0.15s floor (faster reads as a glitch), 0.3s ceiling for state
+     changes (slower reads as lag). Entry/exit of large surfaces may go to
+     0.35s. All of it collapses under prefers-reduced-motion in base.css. */
+  --duration-fast: 0.15s;
+  --duration-base: 0.2s;
+  --duration-slow: 0.3s;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Layout */
+  --layout-max:        72rem;   /* 1152px — wide enough for 6-column tables */
+  --layout-max-narrow: 40rem;   /*  640px — forms, prose, auth screens      */
+  --layout-gutter:     var(--space-sm);
+
+  /* Focus ring. One definition, used everywhere. Never set outline:none
+     without substituting this. */
+  --focus-ring-width:  2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color:  var(--color-border-focus);
+
+  /* Minimum interactive target. WCAG 2.5.8 asks 24px; 44px is the comfortable
+     touch floor and the value this portal holds itself to. */
+  --target-min: 44px;
+
+  --z-dropdown: 10;
+  --z-sticky:   20;
+  --z-tooltip:  40;   /* sobre la barra fija, bajo los modales */
+  --z-modal:    50;
+  --z-toast:    60;
+}
+
+/* ==========================================================================
+   Dark mode is deliberately NOT shipped yet.
+
+   The token architecture above makes it a swap: redefine only the Tier 2
+   --color-* values inside the block below, leave Tier 1 and every component
+   untouched. It is unimplemented rather than half-implemented because each
+   dark pair needs its own contrast verification, and an unverified dark theme
+   is worse than none. See DESIGN-SYSTEM.md § Dark mode for the procedure.
+
+   @media (prefers-color-scheme: dark) {
+     :root:not([data-theme="light"]) { ... redefine Tier 2 only ... }
+   }
+   ========================================================================== */
