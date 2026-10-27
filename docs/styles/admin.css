@@ -19,11 +19,14 @@
 .entrar__form .field { margin: 0; }
 .entrar__secundarias { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2xs); }
 .entrar__dev { margin: 0; }
+/* Mismo ancho que el botón Entrar y dígitos centrados: el campo y la acción
+   forman una sola columna. */
 .input--codigo {
   font-family: var(--font-mono);
   font-size: var(--text-xl);
   letter-spacing: 0.25em;            /* separa los dígitos: se leen y se dictan de a uno */
-  max-width: 12rem;
+  text-align: center;
+  text-indent: 0.25em;               /* compensa el espacio que letter-spacing deja tras el último dígito */
 }
 
 /* ------------------------------------------------------- pestañas de admin */
