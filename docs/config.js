@@ -14,4 +14,4 @@
    probar el flujo real desde localhost, abre la página con ?remoto.
    ========================================================================= */
 
-export const API_URL = '';
+export const API_URL = 'https://defaultb93e809a49c54a0fa60682b846acc3.0d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/06/workflows/b0e558d081534ca0a9bfdb1f3f29e035/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=L8qkg0zC9I0y2Chw4xHBZ1mMciRJVIwRxLEThPwABSw';
