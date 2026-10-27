@@ -38,7 +38,9 @@ En Power Automate, crea un **Flujo de nube instantáneo** y elige como disparado
 - **Quién puede desencadenar el flujo:** *Cualquiera* (*Anyone*). El front no puede presentar credenciales de Microsoft. Por eso la seguridad está en la sesión que valida el script en cada petición.
 - **Método:** `POST`.
 - **Esquema JSON del cuerpo:** déjalo vacío. El front envía texto, no JSON tipado.
-- En la **Configuración** del disparador, activa **Control de simultaneidad** y pon **Grado de paralelismo = 1**. Así dos peticiones nunca escriben el Excel al mismo tiempo. El costo es que, con mucha gente a la vez, las peticiones esperan en fila.
+- **No actives el Control de simultaneidad** en la Configuración del disparador. Power Automate no lo permite en un flujo que tiene una acción Respuesta y no deja guardar (`InvalidConcurrencyConfiguration`). Si ya lo activaste y no se puede apagar, elimina el disparador y vuelve a crearlo; las expresiones `triggerBody()` siguen funcionando.
+
+  Sin ese control, dos peticiones pueden ejecutar el script al mismo tiempo. El script lo tolera: nunca borra ni reordena filas, agrega al final, y al modificar escribe solo las celdas que cambiaron. Así una ejecución no pisa lo que la otra cambió en otra columna. El único choque posible es que dos administradores cambien el mismo campo del mismo registro en el mismo segundo, y en ese caso queda el último, con los dos cambios en la auditoría.
 
 ### 3.2 Acción: Excel Online (Business) → Ejecutar script
 
@@ -155,6 +157,6 @@ Qué conviene comprobar:
   - Cada persona gasta unas cuatro al entrar y hacer su evaluación: pedir código, verificarlo, cargar y enviar.
   - Cada cambio de administración gasta dos: guardar y recargar.
   - Si se llega al límite, una opción es repartir el tráfico en dos flujos con dueños distintos.
-- **Tiempo de respuesta.** Cada petición tarda entre 2 y 10 segundos, según el tamaño del libro y la fila de espera.
+- **Tiempo de respuesta.** Cada petición tarda entre 2 y 10 segundos, según el tamaño del libro. Si Excel está ocupado con otra ejecución, la acción reintenta sola; si aun así falla, el front muestra el error de la Respuesta de error y la persona puede reintentar.
 - **Tamaño.** Cada petición lee las tablas completas. Con miles de evaluaciones por ronda conviene archivar las rondas cerradas en otro libro.
 - **Excel abierto.** Si alguien edita el libro a mano mientras el flujo escribe, puede haber conflictos. Las ediciones manuales conviene hacerlas fuera del horario de uso. Mejor aún, hacerlas desde Administración, que además deja auditoría.

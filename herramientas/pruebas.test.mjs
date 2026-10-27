@@ -304,3 +304,25 @@ test('salir invalida el token', () => {
   assert.equal(r('salir', {}, t).ok, true);
   assert.equal(r('inicio', {}, t).error.codigo, 'sesion');
 });
+
+/* ------------------------------------------------------ ejecuciones cruzadas */
+
+test('dos ejecuciones cruzadas sobre la misma fila no se pisan columnas distintas', () => {
+  // El flujo no serializa las peticiones. Se simula la peor intercalación: A
+  // lee el libro, B lee, escribe y termina, y después A escribe con lo que leyó.
+  const admin = entrarComo('fabian.otero@example.com');
+  const foto = Object.fromEntries(Object.entries(tablas).map(([n, t]) => [n, { columnas: [...t.columnas], valores: t.valores.map((f) => [...f]) }]));
+  const fuenteVieja = { ...fuente, leer: (n) => ({ columnas: [...foto[n].columnas], valores: foto[n].valores.map((f) => [...f]) }) };
+
+  reloj += 1000;
+  const b = JSON.parse(ejecutar(fuente, JSON.stringify({ accion: 'admin.actualizar', token: admin, datos: { entidad: 'persona', id: 'marcela-duarte', cambios: { nombre: 'Marcela Duarte B' } } }), entropia(), reloj));
+  assert.equal(b.respuesta.ok, true, JSON.stringify(b.respuesta));
+  reloj += 1000;
+  const a = JSON.parse(ejecutar(fuenteVieja, JSON.stringify({ accion: 'admin.actualizar', token: admin, datos: { entidad: 'persona', id: 'marcela-duarte', cambios: { area: 'Área A' } } }), entropia(), reloj));
+  assert.equal(a.respuesta.ok, true, JSON.stringify(a.respuesta));
+
+  const t = tablas.Personas;
+  const fila = t.valores.find((f) => f[t.columnas.indexOf('id')] === 'marcela-duarte');
+  assert.equal(fila[t.columnas.indexOf('nombre')], 'Marcela Duarte B', 'A pisó el nombre que cambió B');
+  assert.equal(fila[t.columnas.indexOf('area')], 'Área A');
+});

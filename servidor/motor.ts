@@ -29,13 +29,14 @@ interface Tabla {
   columnas: string[];
   filas: Fila[];          // solo filas con identificador; cada una sabe su índice en `__i`
   total: number;          // filas de datos en el libro, contando las vacías
+  originales: Valor[][];  // lo leído, para escribir después solo las celdas que cambian
 }
 
 /** Lo que el motor necesita del libro. Excel y el servidor local lo implementan. */
 interface Fuente {
   leer(tabla: string): { columnas: string[]; valores: Valor[][] };
   agregarFilas(tabla: string, valores: Valor[][]): void;
-  actualizarFila(tabla: string, indice: number, valores: Valor[]): void;
+  actualizarCelda(tabla: string, fila: number, columna: number, valor: Valor): void;
 }
 
 interface Correo { para: string; asunto: string; html: string; }
@@ -92,7 +93,7 @@ class Contexto {
       columnas.forEach((c, j) => { f[c] = v[j] === undefined || v[j] === null ? '' : v[j]; });
       filas.push(f);
     });
-    const t: Tabla = { columnas, filas, total: crudo.valores.length };
+    const t: Tabla = { columnas, filas, total: crudo.valores.length, originales: crudo.valores };
     this.cache.set(nombre, t);
     return t;
   }
@@ -120,10 +121,23 @@ class Contexto {
     this.cambiadas.set(nombre, m);
   }
 
+  /**
+   * Escribe solo las celdas que cambiaron, no la fila entera. El flujo no puede
+   * serializar las peticiones (Power Automate no permite control de
+   * simultaneidad con una acción Respuesta), así que dos ejecuciones pueden
+   * cruzarse: escribiendo celda por celda, una no pisa con valores viejos lo
+   * que la otra cambió en otra columna de la misma fila.
+   */
   volcar(): void {
     this.cambiadas.forEach((m, nombre) => {
       const t = this.tabla(nombre);
-      m.forEach((f, i) => this.fuente.actualizarFila(nombre, i, t.columnas.map((c) => valorCelda(f[c]))));
+      m.forEach((f, i) => {
+        const antes = t.originales[i] ?? [];
+        t.columnas.forEach((c, j) => {
+          const valor = valorCelda(f[c]);
+          if (valor !== valorCelda(antes[j])) this.fuente.actualizarCelda(nombre, i, j, valor);
+        });
+      });
     });
     this.nuevas.forEach((lista, nombre) => {
       const t = this.tabla(nombre);
@@ -221,9 +235,9 @@ function main(workbook: ExcelScript.Workbook, peticion: string, entropia: string
       const t = workbook.getTable(nombre);
       if (t) t.addRows(-1, valores);
     },
-    actualizarFila(nombre: string, indice: number, valores: Valor[]) {
+    actualizarCelda(nombre: string, fila: number, columna: number, valor: Valor) {
       const t = workbook.getTable(nombre);
-      if (t) t.getRangeBetweenHeaderAndTotal().getRow(indice).setValues([valores]);
+      if (t) t.getRangeBetweenHeaderAndTotal().getCell(fila, columna).setValue(valor);
     },
   };
   return ejecutar(fuente, peticion, entropia, Date.now());

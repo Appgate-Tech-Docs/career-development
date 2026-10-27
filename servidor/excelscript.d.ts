@@ -5,8 +5,8 @@
 declare namespace ExcelScript {
   interface Range {
     getValues(): (string | number | boolean)[][];
-    setValues(values: (string | number | boolean)[][]): void;
-    getRow(row: number): Range;
+    getCell(row: number, column: number): Range;
+    setValue(value: string | number | boolean): void;
   }
   interface Table {
     getHeaderRowRange(): Range;

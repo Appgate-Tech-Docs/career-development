@@ -79,7 +79,7 @@ export function fuenteSobre(tablas) {
       return { columnas: [...t.columnas], valores: t.valores.map((f) => [...f]) };
     },
     agregarFilas(nombre, valores) { tablas[nombre].valores.push(...valores.map((f) => [...f])); },
-    actualizarFila(nombre, indice, valores) { tablas[nombre].valores[indice] = [...valores]; },
+    actualizarCelda(nombre, fila, columna, valor) { tablas[nombre].valores[fila][columna] = valor; },
   };
 }
 
