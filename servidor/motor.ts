@@ -256,10 +256,13 @@ function ejecutar(fuente: Fuente, cuerpo: string, entropia: string, ahora: numbe
     ctx.volcar();
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e);
+    // La pila solo trae ubicaciones en este código, que ya es público, y es lo
+    // único que permite saber dónde falló cuando corre dentro de Excel.
+    const pila = e instanceof Error && e.stack ? e.stack.split('\n').slice(0, 6).join(' | ') : '';
     const partes = m.split('|');
     salida = partes[0] === 'CDP'
       ? { respuesta: { ok: false, error: { codigo: partes[1], mensaje: partes.slice(2).join('|') } }, correo: null }
-      : { respuesta: { ok: false, error: { codigo: 'interno', mensaje: 'Algo falló del lado del servidor.' }, detalle: m }, correo: null };
+      : { respuesta: { ok: false, error: { codigo: 'interno', mensaje: 'Algo falló del lado del servidor.' }, detalle: m, pila }, correo: null };
   }
   return JSON.stringify(salida);
 }
