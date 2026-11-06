@@ -62,6 +62,8 @@
   --color-surface-sunken: var(--appgate-gray-lightest);
   --color-surface-hover:  var(--appgate-gray-lightest);
   --color-overlay:        rgb(8 19 57 / 0.55);   /* navy-tinted, not pure black */
+  --color-scrim:          rgb(8 19 57 / 0.38);   /* visita guiada: atenúa lo que no se explica */
+  --color-scrim-soft:     rgb(8 19 57 / 0.22);   /* zona señalada en las capturas del manual */
 
   /* Text. Every value verified against --color-canvas (#FAFBFD). */
   --color-text:          var(--appgate-gray-dark);    /*  9.92:1  body       */
@@ -198,6 +200,7 @@
   --z-tooltip:  40;   /* sobre la barra fija, bajo los modales */
   --z-modal:    50;
   --z-toast:    60;
+  --z-tour:     70;   /* visita guiada: sobre todo, incluso los avisos */
 }
 
 /* ==========================================================================

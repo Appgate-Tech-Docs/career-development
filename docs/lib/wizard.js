@@ -21,6 +21,7 @@ import {
   NIVEL_A_PUNTAJE, NIVEL_ORDEN, NIVEL_LABEL,
   cargoPorNombre, normalizar, valorNivel,
 } from './modelo.js';
+import { CORREO_AYUDA } from '../config.js';
 
 export const CATEGORIA_LABEL = {
   Funcion: 'Función del rol',
@@ -554,7 +555,7 @@ export function startWizard(config) {
       if (error?.codigo !== 'sesion') {
         toast(
           error?.codigo === 'ronda'
-            ? 'La ronda se cerró antes de enviar. Tus respuestas quedaron en este navegador; habla con el equipo de Personas.'
+            ? 'La ronda se cerró antes de enviar. Tus respuestas quedaron en este navegador; habla con el equipo de Personas (' + CORREO_AYUDA + ').'
             : error?.message
               ? `No se pudo enviar: ${error.message} Tus respuestas siguen guardadas.`
               : 'No se pudo enviar. Tus respuestas siguen guardadas; intenta de nuevo.',

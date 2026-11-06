@@ -10,6 +10,8 @@
    usuario tiene permiso: eso se resuelve una sola vez, acá.
    ========================================================================= */
 
+import { CORREO_AYUDA } from '../config.js';
+
 const rutas = [];
 let contenedor = null;
 let antes = null;
@@ -110,7 +112,7 @@ export async function resolver({ conservar = false, enfocar = null } = {}) {
     contenedor.innerHTML = `
       <div class="page-header"><h1 class="page-header__title">No se pudo abrir esta pantalla</h1></div>
       <div class="callout callout--danger" role="alert">
-        <span>${escapar(error.message ?? 'Error inesperado.')} Recarga la página; si se repite, avisa al equipo de Personas.</span></div>
+        <span>${escapar(error.message ?? 'Error inesperado.')} Recarga la página; si se repite, avisa al equipo de Personas (${escapar(CORREO_AYUDA)}).</span></div>
       <p><a class="btn btn--secondary" href="#/">Ir al inicio</a></p>`;
   }
 

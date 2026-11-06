@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="styles/mvp.css">
 <link rel="stylesheet" href="styles/graficas.css">
 <link rel="stylesheet" href="styles/admin.css">
+<link rel="stylesheet" href="styles/ayuda.css">
 </head>
 <body>
 
@@ -30,6 +31,13 @@
       <span>Desarrollo de Carrera</span>
     </a>
     <nav class="app-nav" id="nav" aria-label="Secciones"></nav>
+    <!-- Ayuda en todas las pantallas, también antes de entrar: la duda llega
+         en cualquier momento, y buscarla no puede costar más que tenerla. -->
+    <div class="ayuda-menu" id="ayuda">
+      <button type="button" class="btn btn--ghost btn--sm ayuda-menu__boton" id="btn-ayuda"
+              aria-expanded="false" aria-controls="ayuda-panel"></button>
+      <div class="ayuda-menu__panel" id="ayuda-panel" hidden></div>
+    </div>
     <div class="usuario" id="usuario" hidden></div>
   </div>
 </header>
@@ -42,6 +50,7 @@
 <footer class="app-footer">
   <div class="container app-footer__inner">
     <span id="pie-ronda"></span>
+    <span id="pie-ayuda"></span>
   </div>
 </footer>
 
@@ -52,6 +61,9 @@ import {
   iniciar, sesion, salir, ronda, ROLES, pendientes, descartarSesion, borradoresSinEnviar,
 } from './lib/almacen.js';
 import { ruta, configurar, iniciarRuteo, ir, resolver } from './lib/ruteo.js';
+import { iniciarRecorrido, cerrarRecorrido, hayRecorrido, yaVioRecorrido, claveDe } from './lib/recorrido.js';
+import { CORREO_AYUDA } from './config.js';
+import { vistaAyuda, vistaAyudaAdmin } from './vistas/ayuda.js';
 
 import { vistaEntrar } from './vistas/entrar.js';
 import { vistaInicio } from './vistas/inicio.js';
@@ -87,6 +99,11 @@ ruta('#/admin/cargos', vistaAdminCargos, { rol: 'admin' });
 ruta('#/admin/pares', vistaAdminPares, { rol: 'admin' });
 ruta('#/admin/auditoria', vistaAdminAuditoria, { rol: 'admin' });
 ruta('#/admin/ronda', vistaAdminRonda, { rol: 'admin' });
+// El manual se abre con o sin sesión: quien todavía no entra también puede tener dudas.
+ruta('#/ayuda', vistaAyuda, { abierta: true });
+ruta('#/ayuda/:seccion', vistaAyuda, { abierta: true });
+ruta('#/ayuda-admin', vistaAyudaAdmin, { rol: 'admin' });
+ruta('#/ayuda-admin/:seccion', vistaAyudaAdmin, { rol: 'admin' });
 // Un enlace viejo o mal escrito llega acá: con título y salida, no una línea suelta.
 ruta('#/404', () => `
   <div class="page-header"><h1 class="page-header__title">Esta página no existe</h1></div>
@@ -126,9 +143,66 @@ function actual(l, hash) {
   return (l.prefijo ?? []).some((p) => hash.startsWith(p)) ? 'true' : null;
 }
 
+/* ------------------------------------------------------------------- ayuda */
+
+function pintarAyuda() {
+  const s = sesion();
+  const hash = location.hash || '#/';
+  const admin = s?.persona.roles.includes('admin');
+  const conRecorrido = s && hayRecorrido(hash);
+  const html = `
+    <ul class="ayuda-menu__lista">
+      ${conRecorrido ? `<li><button type="button" class="ayuda-menu__item" data-recorrido>${icon('compass')}<span>Visita guiada de esta pantalla</span></button></li>` : ''}
+      <li><a class="ayuda-menu__item" href="#/ayuda">${icon('book')}<span>Manual de uso</span></a></li>
+      ${admin ? `<li><a class="ayuda-menu__item" href="#/ayuda-admin">${icon('database')}<span>Manual de administración</span></a></li>` : ''}
+      <li class="ayuda-menu__separador"><a class="ayuda-menu__item" href="mailto:${esc(CORREO_AYUDA)}">${icon('mail')}
+        <span>Escribir a Personas<span class="ayuda-menu__detalle">${esc(CORREO_AYUDA)}</span></span></a></li>
+    </ul>`;
+  // Sin repintar si nada cambió: con el menú abierto, repintar perdía el foco.
+  if (el('ayuda-panel').dataset.html !== html) { el('ayuda-panel').innerHTML = html; el('ayuda-panel').dataset.html = html; }
+  if (!el('btn-ayuda').innerHTML) el('btn-ayuda').innerHTML = `${icon('help')}<span>Ayuda</span>`;
+  el('pie-ayuda').innerHTML = `¿Dudas? <a href="#/ayuda">Manual de uso</a> · <a href="mailto:${esc(CORREO_AYUDA)}">${esc(CORREO_AYUDA)}</a>`;
+}
+
+function abrirAyuda(abrir) {
+  el('btn-ayuda').setAttribute('aria-expanded', String(abrir));
+  el('ayuda-panel').hidden = !abrir;
+}
+
+el('btn-ayuda').addEventListener('click', () => abrirAyuda(el('ayuda-panel').hidden));
+el('ayuda-panel').addEventListener('click', (e) => {
+  if (e.target.closest('[data-recorrido]')) {
+    abrirAyuda(false);
+    // El foco vuelve al botón Ayuda al terminar: el ítem del menú ya no está visible.
+    if (!iniciarRecorrido({ volverA: el('btn-ayuda') })) {
+      toast('Esta pantalla no tiene nada que explicar en este momento. El manual de uso está en Ayuda.', 'info');
+      el('btn-ayuda').focus();
+    }
+  } else if (e.target.closest('a')) abrirAyuda(false);
+});
+// Escape, un clic fuera o el foco saliendo del menú lo cierran: abierto, tapaba
+// lo que venía después.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !el('ayuda-panel').hidden) { abrirAyuda(false); el('btn-ayuda').focus(); }
+});
+document.addEventListener('click', (e) => { if (!el('ayuda').contains(e.target)) abrirAyuda(false); });
+el('ayuda').addEventListener('focusout', (e) => { if (e.relatedTarget && !el('ayuda').contains(e.relatedTarget)) abrirAyuda(false); });
+
+// Un solo temporizador para la visita automática: si la persona cambia de
+// pantalla antes de que arranque, se cancela.
+let visitaProgramada = 0;
+function programarVisita(hash, opciones) {
+  clearTimeout(visitaProgramada);
+  visitaProgramada = setTimeout(() => {
+    if ((location.hash || '#/') !== hash || document.querySelector('dialog[open]')) return;
+    iniciarRecorrido({ hash, ...opciones });
+  }, 600);
+}
+
 function pintarCarcasa() {
   const s = sesion();
   el('pie-ronda').textContent = s && ronda() ? `Ronda ${ronda().nombre}${ronda().abierta ? '' : ' · cerrada'}` : '';
+  pintarAyuda();
 
   if (!s) {
     el('nav').innerHTML = '';
@@ -176,6 +250,11 @@ configurar({
   // hay permiso: llega resuelto o no llega.
   alEntrar(r) {
     const s = sesion();
+    // Una visita abierta no sobrevive a un cambio de pantalla.
+    clearTimeout(visitaProgramada);
+    cerrarRecorrido();
+    abrirAyuda(false);
+    if (r.abierta) return { sesion: s };
     if (!s) return r.publica ? {} : { redirigir: '#/entrar' };
     if (r.publica) return { redirigir: '#/' };
     if (r.rol && !s.persona.roles.includes(r.rol)) return { redirigir: '#/' };
@@ -183,7 +262,20 @@ configurar({
     return { sesion: s };
   },
 
-  alSalir() { ocultarTooltip(); pintarCarcasa(); },
+  alSalir() {
+    ocultarTooltip();
+    pintarCarcasa();
+    const s = sesion();
+    const hash = location.hash || '#/';
+    // «Ir a hacerlo, con visita guiada» desde el manual: arranca al llegar, solo
+    // si se llegó a la pantalla pedida (una redirección no hereda la visita).
+    let pedida = null;
+    try { pedida = sessionStorage.getItem('cdp.recorrido-pendiente'); sessionStorage.removeItem('cdp.recorrido-pendiente'); } catch { /* sin visita */ }
+    if (s && pedida && claveDe(pedida) === claveDe(hash)) { programarVisita(hash, {}); return; }
+    // La primera vez que alguien entra, la visita de Inicio arranca sola.
+    // Después se repite desde Ayuda, cuando la persona quiera.
+    if (s && hash === '#/' && !yaVioRecorrido(s.persona.id)) programarVisita(hash, { usuario: s.persona.id });
+  },
 });
 
 document.addEventListener('cdp:cambio', pintarCarcasa);

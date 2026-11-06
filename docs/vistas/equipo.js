@@ -23,6 +23,7 @@ import {
   graficaDistribucion, graficaBrechas, graficaMatriz, conectarGraficas,
 } from '../lib/graficas.js';
 
+import { CORREO_AYUDA } from '../config.js';
 export function vistaEquipo({ sesion }) {
   const miembros = equipoExtendido(sesion.persona.id);
 
@@ -30,7 +31,7 @@ export function vistaEquipo({ sesion }) {
     return {
       html: emptyState({
         title: 'No tienes personas a cargo en esta ronda',
-        body: 'Si deberías tenerlas, avisa al equipo de Personas para que lo corrija.',
+        body: 'Si deberías tenerlas, avisa al equipo de Personas (' + CORREO_AYUDA + ') para que lo corrija.',
         glyph: 'users',
       }),
     };

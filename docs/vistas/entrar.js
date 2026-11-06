@@ -15,6 +15,7 @@ import { esc, icon, setFieldError, clearFieldErrors, withBusy } from '../lib/ui.
 import { pedirCodigo, confirmarCodigo } from '../lib/almacen.js';
 import { tokenGuardado } from '../lib/api.js';
 import { ir } from '../lib/ruteo.js';
+import { CORREO_AYUDA } from '../config.js';
 
 const LLAVE_CORREO = 'cdp.ultimo-correo';
 const ESPERA_REENVIO = 60;   // segundos; el servidor exige lo mismo (codigo_espera_segundos)
@@ -72,7 +73,7 @@ export function vistaEntrar() {
       </div>
       <p class="field__hint" id="reenviar-espera" aria-live="off"></p>
       <p class="field__hint">¿No llega? Revisa la carpeta de correo no deseado. Si sigue sin llegar,
-        avisa al equipo de Personas.</p>
+        escribe a <a href="mailto:${CORREO_AYUDA}">${CORREO_AYUDA}</a>.</p>
       ${local ? `
         <p class="callout callout--warning entrar__dev">${icon('info')}
           <span>Servidor local: el código aparece en la consola de <code>npm run local</code> y en <code>/dev/buzon</code>.</span>

@@ -17,6 +17,7 @@ import {
 } from '../lib/almacen.js';
 import { preguntasDe } from './evaluar.js';
 
+import { CORREO_AYUDA } from '../config.js';
 export function vistaInicio({ sesion }) {
   const p = sesion.persona;
   const tareas = pendientes(p.id);
@@ -256,7 +257,7 @@ function sinNada(p, { esLider, esAdmin, tareas }) {
 function bloqueSinCargo() {
   return emptyState({
     title: 'Todavía no tienes un cargo asignado',
-    body: 'Sin cargo no hay habilidades que evaluar en esta ronda. El equipo de Personas lo asigna; '
+    body: 'Sin cargo no hay habilidades que evaluar en esta ronda. El equipo de Personas (' + CORREO_AYUDA + ') lo asigna; '
         + 'cuando lo haga, aquí aparecerá tu autoevaluación.',
     glyph: 'user',
   });

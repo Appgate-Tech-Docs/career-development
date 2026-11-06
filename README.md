@@ -27,6 +27,13 @@ Herramienta de evaluación por cargo y planes de desarrollo. Recolecta las evalu
 
 La regla de visibilidad vive en una sola función, `equiposQueLidera` en `servidor/motor.ts`. Si mañana un líder debe ver también el equipo extendido, se cambia ahí y el resto de la arquitectura no se toca.
 
+## Ayuda dentro del portal
+
+- **Botón «Ayuda»** en todas las pantallas, también antes de entrar: manual de uso, visita guiada de la pantalla actual y el correo de contacto (`CORREO_AYUDA` en `docs/config.js`).
+- **Manual de uso** (`#/ayuda`, `docs/vistas/ayuda.js`): tareas cortas por rol, con capturas en `docs/ayuda/img/`. Si cambia una pantalla, conviene volver a tomar su captura.
+- **Manual de administración** (`#/ayuda-admin`): dónde quedó cada hoja del Excel V6 y las tareas de administración. Solo lo ven quienes administran.
+- **Visita guiada** (`docs/lib/recorrido.js`): arranca sola la primera vez que alguien entra y se repite desde Ayuda. Los pasos de cada pantalla están al principio de ese archivo.
+
 ## Estructura
 
 | Carpeta | Qué hay |

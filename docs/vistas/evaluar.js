@@ -20,6 +20,7 @@ import {
 } from '../lib/almacen.js';
 import { ir } from '../lib/ruteo.js';
 
+import { CORREO_AYUDA } from '../config.js';
 const ORDEN_TIPO = ['Funcion', 'Hard Skill', 'Soft Skill'];
 
 const TEXTO_ROL = {
@@ -65,7 +66,7 @@ export function vistaEvaluar({ sesion, params }) {
       html: emptyState({
         title: `No te corresponde evaluar a ${evaluado.nombre}`,
         body: 'Solo evalúas a tus reportes directos y a los pares que te asignaron. '
-            + 'Si crees que falta una asignación, habla con el equipo de Personas.',
+            + 'Si crees que falta una asignación, habla con el equipo de Personas (' + CORREO_AYUDA + ').',
         glyph: 'lock',
       }),
     };
@@ -90,7 +91,7 @@ export function vistaEvaluar({ sesion, params }) {
         </div>
         ${emptyState({
           title: 'Ya no se pueden enviar ni cambiar evaluaciones',
-          body: 'Si necesitas corregir algo, habla con el equipo de Personas.',
+          body: 'Si necesitas corregir algo, habla con el equipo de Personas (' + CORREO_AYUDA + ').',
           glyph: 'lock',
         })}`,
     };

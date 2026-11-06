@@ -29,6 +29,7 @@ import {
   graficaMiradas, graficaContraEsperado, graficaMatriz, conectarGraficas,
 } from '../lib/graficas.js';
 
+import { CORREO_AYUDA } from '../config.js';
 const NIVELES = ['Basic', 'Intermediate', 'Advanced', 'Expert'];
 const PUNTAJE_DE_NIVEL = { Basic: 2, Intermediate: 3, Advanced: 4, Expert: 5 };
 
@@ -604,6 +605,6 @@ const noExiste = () => emptyState({
 const sinPermiso = (p) => emptyState({
   title: `No puedes ver el perfil de ${p.nombre}`,
   body: 'Solo esa persona y su líder directo tienen acceso a este detalle. '
-      + 'Si crees que deberías verlo, habla con el equipo de Personas.',
+      + 'Si crees que deberías verlo, habla con el equipo de Personas (' + CORREO_AYUDA + ').',
   glyph: 'lock',
 });

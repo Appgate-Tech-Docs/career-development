@@ -358,10 +358,18 @@ function sugerencia(p, brechas) {
     titulo: `Cerrar brechas en ${nombres[0]}`,
     objetivo: `Llevar ${nombres.length === 1 ? nombres[0] : 'estas habilidades'} al nivel que `
             + 'el cargo espera.',
+    // Las cinco dimensiones de la hoja Planning del modelo, para no empezar de
+    // una hoja en blanco: qué proyecto, quién acompaña, qué formación, cómo se
+    // sabe que se logró y qué se recomienda.
     propuesta: brechas.map((h) =>
       `${h.nombre} (${etiqueta(h.tipo)})\n`
       + `  Hoy: ${h.nivel_label ?? 'sin evaluar'} · Se espera: ${h.nivel_esperado_label}\n`
-      + `  ${h.niveles?.[h.nivel_esperado] ? `Alcanzar ese nivel significa: ${h.niveles[h.nivel_esperado]}` : ''}`,
+      + `${h.niveles?.[h.nivel_esperado] ? `  Alcanzar ese nivel significa: ${h.niveles[h.nivel_esperado]}\n` : ''}`
+      + '  Proyecto o experiencia: …\n'
+      + '  Mentoría o coaching: …\n'
+      + '  Formación o certificación: …\n'
+      + '  Meta de cumplimiento (cómo sabremos que se logró): …\n'
+      + '  Recomendaciones: …',
     ).join('\n\n'),
     skill_ids: brechas.map((h) => h.skill_id),
   };
